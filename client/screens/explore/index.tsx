@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   },
   tabRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 10,
     paddingHorizontal: 16,
     marginBottom: 14,
   },
