@@ -1,17 +1,9 @@
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useCSSVariable } from 'uniwind';
 
 export default function TabLayout() {
-  const [background, muted, accent, border] = useCSSVariable([
-    '--color-background',
-    '--color-muted',
-    '--color-accent',
-    '--color-border',
-  ]) as string[];
-
-  let tabBarStyle = {
+  const tabBarStyle = {
     backgroundColor: '#FAF6F1',
     borderTopWidth: 0,
     shadowColor: '#6F4E37',
@@ -20,12 +12,6 @@ export default function TabLayout() {
     shadowRadius: 8,
     elevation: 3,
   };
-
-  if (Platform.OS === 'web') {
-    tabBarStyle = {
-      ...tabBarStyle,
-    };
-  }
 
   return (
     <Tabs
