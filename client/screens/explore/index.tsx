@@ -8,6 +8,7 @@ import {
   RefreshControl,
   StyleSheet,
   Image,
+  Linking,
 } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useUser } from '@/contexts/UserContext';
@@ -129,7 +130,7 @@ export default function ExploreScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setError('Location permission denied');
+        setError('Permission denied');
         setLoading(false);
         return;
       }
@@ -142,6 +143,18 @@ export default function ExploreScreen() {
       setError('Failed to get location');
       setLoading(false);
     }
+  }, [fetchShops]);
+
+  const openSettings = () => {
+    Linking.openSettings();
+  };
+
+  const useDefaultLocation = useCallback(async () => {
+    // Default to Shanghai People's Square
+    const coords = { latitude: 31.2304, longitude: 121.4737 };
+    setLocation(coords);
+    setError('');
+    await fetchShops(coords.latitude, coords.longitude);
   }, [fetchShops]);
 
   useFocusEffect(
@@ -176,9 +189,17 @@ export default function ExploreScreen() {
         <View style={styles.center}>
           <Feather name="alert-circle" size={48} color="#C4B8A8" />
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={requestLocation}>
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
+          <Text style={styles.errorSubtext}>Enable location to find shops near you</Text>
+          <View style={styles.errorBtnRow}>
+            <TouchableOpacity style={styles.retryBtn} onPress={openSettings}>
+              <Feather name="settings" size={16} color="#6F4E37" />
+              <Text style={styles.retryText}>Open Settings</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.defaultBtn} onPress={useDefaultLocation}>
+              <Feather name="map-pin" size={16} color="#6F4E37" />
+              <Text style={styles.retryText}>Use Shanghai</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Screen>
     );
@@ -359,10 +380,32 @@ const styles = StyleSheet.create({
     color: '#8B7355',
     textAlign: 'center',
   },
-  retryBtn: {
+  errorSubtext: {
+    marginTop: 8,
+    fontSize: 13,
+    color: '#C4B8A8',
+    textAlign: 'center',
+  },
+  errorBtnRow: {
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 20,
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: '#6F4E37',
-    paddingHorizontal: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  defaultBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F5EDE4',
+    paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,
   },
