@@ -31,7 +31,10 @@ interface Shop {
   distance: string;
   type: string;
   photos: { title: string; url: string }[];
+  cost?: number | null;
 }
+
+type SortBy = 'distance' | 'rating' | 'cost';
 
 function StarRating({ rating }: { rating: number }) {
   const fullStars = Math.floor(rating);
@@ -73,6 +76,7 @@ function ShopCard({ shop }: { shop: Shop }) {
       longitude: shop.longitude.toString(),
       distance: shop.distance,
       photos: JSON.stringify(shop.photos || []),
+      cost: shop.cost != null ? shop.cost.toString() : '',
     });
   };
 
@@ -96,7 +100,15 @@ function ShopCard({ shop }: { shop: Shop }) {
           <Text style={styles.cardName} numberOfLines={1}>{shop.name}</Text>
           {shop.phone ? <Feather name="phone" size={14} color="#B3A18C" /> : null}
         </View>
-        <StarRating rating={shop.rating} />
+        <View style={styles.ratingRow}>
+          <StarRating rating={shop.rating} />
+          {shop.cost != null ? (
+            <View style={styles.costBadge}>
+              <Feather name="dollar-sign" size={10} color="#6F4E37" />
+              <Text style={styles.costText}>{shop.cost}/person</Text>
+            </View>
+          ) : null}
+        </View>
         <TouchableOpacity style={styles.cardRow} onPress={() => setMapPickerVisible(true)} activeOpacity={0.6}>
           <Feather name="map-pin" size={12} color="#8B7355" />
           <Text style={styles.cardAddress} numberOfLines={1} ellipsizeMode="tail">{shop.address}</Text>
@@ -121,11 +133,18 @@ export default function ExploreScreen() {
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [error, setError] = useState('');
   const [category, setCategory] = useState<'coffee' | 'brunch'>('coffee');
+  const [sortBy, setSortBy] = useState<SortBy>('distance');
 
-  const fetchShops = useCallback(async (lat: number, lng: number, cat: 'coffee' | 'brunch') => {
+  /**
+   * 服务端文件：server/src/index.ts
+   * 接口：GET /api/v1/shops/nearby
+   * Query 参数：latitude: number, longitude: number, radius?: number,
+   *            category?: 'coffee' | 'brunch', sort?: 'distance' | 'rating' | 'cost'
+   */
+  const fetchShops = useCallback(async (lat: number, lng: number, cat: 'coffee' | 'brunch', sort: SortBy) => {
     try {
       const res = await fetch(
-        `${API_BASE_URL}/shops/nearby?latitude=${lat}&longitude=${lng}&radius=3000&category=${cat}`
+        `${API_BASE_URL}/shops/nearby?latitude=${lat}&longitude=${lng}&radius=3000&category=${cat}&sort=${sort}`
       );
       const data = await res.json();
       setShops(data);
@@ -171,9 +190,9 @@ export default function ExploreScreen() {
   useEffect(() => {
     if (location) {
       setLoading(true);
-      fetchShops(location.latitude, location.longitude, category);
+      fetchShops(location.latitude, location.longitude, category, sortBy);
     }
-  }, [location, category, fetchShops]);
+  }, [location, category, sortBy, fetchShops]);
 
   // Request location permission on first focus only
   useFocusEffect(
@@ -188,12 +207,12 @@ export default function ExploreScreen() {
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     if (location) {
-      fetchShops(location.latitude, location.longitude, category);
+      fetchShops(location.latitude, location.longitude, category, sortBy);
     } else {
       setHasRequestedPermission(false);
       requestLocation();
     }
-  }, [location, category, fetchShops, requestLocation]);
+  }, [location, category, sortBy, fetchShops, requestLocation]);
 
   const switchCategory = useCallback((cat: 'coffee' | 'brunch') => {
     setCategory(cat);
@@ -267,6 +286,24 @@ export default function ExploreScreen() {
           </TouchableOpacity>
         </View>
 
+        <View style={styles.sortRow}>
+          {([
+            { key: 'distance', label: 'Nearest' },
+            { key: 'rating', label: 'Top Rated' },
+            { key: 'cost', label: 'Cheapest' },
+          ] as { key: SortBy; label: string }[]).map((opt) => (
+            <TouchableOpacity
+              key={opt.key}
+              style={[styles.sortChip, sortBy === opt.key && styles.sortChipActive]}
+              onPress={() => setSortBy(opt.key)}
+            >
+              <Text style={[styles.sortChipText, sortBy === opt.key && styles.sortChipTextActive]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <FlatList
           data={shops}
           keyExtractor={(item) => item.poi_id}
@@ -331,6 +368,49 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: '#FAF6F1',
+  },
+  sortRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  sortChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: '#F5EDE4',
+  },
+  sortChipActive: {
+    backgroundColor: '#E8DFD5',
+  },
+  sortChipText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#8B7355',
+  },
+  sortChipTextActive: {
+    color: '#3C2415',
+    fontWeight: '700',
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  costBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: '#F5EDE4',
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  costText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6F4E37',
   },
   headerSubtitle: {
     fontSize: 14,

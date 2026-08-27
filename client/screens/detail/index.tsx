@@ -29,6 +29,7 @@ export default function DetailScreen() {
     address: string;
     phone: string;
     rating: string;
+    cost: string;
     latitude: string;
     longitude: string;
     distance: string;
@@ -45,6 +46,7 @@ export default function DetailScreen() {
 
   const photos: { title: string; url: string }[] = params.photos ? JSON.parse(params.photos) : [];
   const rating = parseFloat(params.rating || '0');
+  const cost = params.cost ? parseInt(params.cost, 10) : null;
 
   const mapTarget: MapTarget = {
     name: params.name,
@@ -163,6 +165,12 @@ export default function DetailScreen() {
               ))}
             </View>
             <Text style={styles.ratingNum}>{rating > 0 ? rating.toFixed(1) : 'N/A'}</Text>
+            {cost != null ? (
+              <View style={styles.costBadge}>
+                <Feather name="dollar-sign" size={11} color="#6F4E37" />
+                <Text style={styles.costText}>{cost}/person</Text>
+              </View>
+            ) : null}
           </View>
 
           <TouchableOpacity style={styles.infoRow} onPress={() => setMapPickerVisible(true)} activeOpacity={0.6}>
@@ -292,6 +300,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
+  },
+  costBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#F5EDE4',
+    borderRadius: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  costText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6F4E37',
   },
   shopName: {
     fontSize: 22,

@@ -189,10 +189,23 @@ app.get('/api/v1/shops/nearby', async (req, res) => {
         distance: poi.distance,
         type: poi.type,
         photos: poi.photos || [],
+        cost: parseCost(poi.biz_ext?.cost),
       };
     });
 
-    res.json(shops);
+    // Sort: rating (desc) | distance (asc) | cost (asc, unknown last)
+    const sortMode = (req.query.sort as string) || 'distance';
+    const sorted = [...shops].sort((a: any, b: any) => {
+      if (sortMode === 'rating') return (b.rating || 0) - (a.rating || 0);
+      if (sortMode === 'cost') {
+        if (a.cost == null) return 1;
+        if (b.cost == null) return -1;
+        return a.cost - b.cost;
+      }
+      return parseFloat(a.distance || '0') - parseFloat(b.distance || '0');
+    });
+
+    res.json(sorted);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('GET /api/v1/shops/nearby error:', message);
@@ -401,25 +414,33 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * c;
 }
 
+// Parse Amap cost field: may be '41.00', 41, '[]', [] or null -> number | null
+function parseCost(cost: unknown): number | null {
+  if (cost == null) return null;
+  if (Array.isArray(cost)) return null;
+  const parsed = typeof cost === 'number' ? cost : parseFloat(String(cost));
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : null;
+}
+
 function getDemoShops(lat: number, lng: number, isBrunch = false) {
   const coffeeShops = [
-    { name: 'Manner Coffee', address: '南京西路1688号', phone: '021-6288-1688', rating: 4.5, latOff: 0.002, lngOff: 0.003 },
-    { name: 'Seesaw Coffee', address: '愚园路1107号', phone: '021-6288-2688', rating: 4.3, latOff: -0.003, lngOff: 0.001 },
-    { name: '% Arabica', address: '武康路378号', phone: '021-6288-3688', rating: 4.7, latOff: 0.001, lngOff: -0.002 },
-    { name: 'Metal Hands', address: '长乐路672号', phone: '021-6288-4688', rating: 4.4, latOff: -0.001, lngOff: -0.004 },
-    { name: 'Greybox Coffee', address: '新天地南里广场', phone: '021-6288-5688', rating: 4.2, latOff: 0.004, lngOff: 0.002 },
-    { name: 'M Stand', address: '淮海中路999号', phone: '021-6288-6688', rating: 4.6, latOff: -0.002, lngOff: 0.005 },
-    { name: 'RUMORS Coffee', address: '安福路322号', phone: '021-6288-7688', rating: 4.1, latOff: 0.003, lngOff: -0.001 },
-    { name: 'O.P.S. Cafe', address: '巨鹿路758号', phone: '021-6288-8688', rating: 4.8, latOff: -0.004, lngOff: -0.002 },
+    { name: 'Manner Coffee', address: '南京西路1688号', phone: '021-6288-1688', rating: 4.5, cost: 25, latOff: 0.002, lngOff: 0.003 },
+    { name: 'Seesaw Coffee', address: '愚园路1107号', phone: '021-6288-2688', rating: 4.3, cost: 42, latOff: -0.003, lngOff: 0.001 },
+    { name: '% Arabica', address: '武康路378号', phone: '021-6288-3688', rating: 4.7, cost: 40, latOff: 0.001, lngOff: -0.002 },
+    { name: 'Metal Hands', address: '长乐路672号', phone: '021-6288-4688', rating: 4.4, cost: 35, latOff: -0.001, lngOff: -0.004 },
+    { name: 'Greybox Coffee', address: '新天地南里广场', phone: '021-6288-5688', rating: 4.2, cost: 55, latOff: 0.004, lngOff: 0.002 },
+    { name: 'M Stand', address: '淮海中路999号', phone: '021-6288-6688', rating: 4.6, cost: 38, latOff: -0.002, lngOff: 0.005 },
+    { name: 'RUMORS Coffee', address: '安福路322号', phone: '021-6288-7688', rating: 4.1, cost: 48, latOff: 0.003, lngOff: -0.001 },
+    { name: 'O.P.S. Cafe', address: '巨鹿路758号', phone: '021-6288-8688', rating: 4.8, cost: 60, latOff: -0.004, lngOff: -0.002 },
   ];
 
   const brunchShops = [
-    { name: 'gaga', address: '岭南新天地L203', phone: '021-6288-1188', rating: 4.6, latOff: 0.002, lngOff: 0.002 },
-    { name: 'Wagas', address: '中区广场1楼', phone: '021-6288-2288', rating: 4.3, latOff: -0.002, lngOff: 0.004 },
-    { name: 'Baker & Spice', address: 'K11购物艺术中心B1', phone: '021-6288-3388', rating: 4.4, latOff: 0.003, lngOff: -0.003 },
-    { name: '星美乐 Baker & Star', address: '南京西路789号', phone: '021-6288-4488', rating: 4.5, latOff: -0.003, lngOff: -0.001 },
-    { name: '巴黎贝甜 Paris Baguette', address: '新世界城B1', phone: '021-6288-5588', rating: 4.0, latOff: 0.001, lngOff: 0.005 },
-    { name: 'Farm+Bread', address: '淮海中路300号', phone: '021-6288-6688', rating: 4.2, latOff: 0.004, lngOff: -0.004 },
+    { name: 'gaga', address: '岭南新天地L203', phone: '021-6288-1188', rating: 4.6, cost: 85, latOff: 0.002, lngOff: 0.002 },
+    { name: 'Wagas', address: '中区广场1楼', phone: '021-6288-2288', rating: 4.3, cost: 70, latOff: -0.002, lngOff: 0.004 },
+    { name: 'Baker & Spice', address: 'K11购物艺术中心B1', phone: '021-6288-3388', rating: 4.4, cost: 65, latOff: 0.003, lngOff: -0.003 },
+    { name: '星美乐 Baker & Star', address: '南京西路789号', phone: '021-6288-4488', rating: 4.5, cost: 78, latOff: -0.003, lngOff: -0.001 },
+    { name: '巴黎贝甜 Paris Baguette', address: '新世界城B1', phone: '021-6288-5588', rating: 4.0, cost: 38, latOff: 0.001, lngOff: 0.005 },
+    { name: 'Farm+Bread', address: '淮海中路300号', phone: '021-6288-6688', rating: 4.2, cost: 52, latOff: 0.004, lngOff: -0.004 },
   ];
 
   const baseShops = isBrunch ? brunchShops : coffeeShops;
@@ -430,6 +451,7 @@ function getDemoShops(lat: number, lng: number, isBrunch = false) {
     address: shop.address,
     phone: shop.phone,
     rating: shop.rating,
+    cost: shop.cost,
     latitude: lat + shop.latOff,
     longitude: lng + shop.lngOff,
     distance: (Math.random() * 2 + 0.1).toFixed(1),
