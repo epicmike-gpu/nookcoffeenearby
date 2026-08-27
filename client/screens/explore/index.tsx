@@ -120,11 +120,12 @@ export default function ExploreScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [error, setError] = useState('');
+  const [category, setCategory] = useState<'coffee' | 'brunch'>('coffee');
 
-  const fetchShops = useCallback(async (lat: number, lng: number) => {
+  const fetchShops = useCallback(async (lat: number, lng: number, cat: 'coffee' | 'brunch') => {
     try {
       const res = await fetch(
-        `${API_BASE_URL}/shops/nearby?latitude=${lat}&longitude=${lng}&radius=3000&keywords=%E5%92%96%E5%95%A1`
+        `${API_BASE_URL}/shops/nearby?latitude=${lat}&longitude=${lng}&radius=3000&category=${cat}`
       );
       const data = await res.json();
       setShops(data);
@@ -148,12 +149,11 @@ export default function ExploreScreen() {
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
       setLocation(coords);
-      await fetchShops(coords.latitude, coords.longitude);
     } catch {
       setError('Failed to get location');
       setLoading(false);
     }
-  }, [fetchShops]);
+  }, []);
 
   const openSettings = () => {
     Linking.openSettings();
@@ -167,13 +167,13 @@ export default function ExploreScreen() {
 
   const [hasRequestedPermission, setHasRequestedPermission] = useState(false);
 
-  // Fetch shops when location changes (including "Use Shanghai" button)
+  // Fetch shops when location or category changes (including "Use Shanghai" button)
   useEffect(() => {
     if (location) {
       setLoading(true);
-      fetchShops(location.latitude, location.longitude);
+      fetchShops(location.latitude, location.longitude, category);
     }
-  }, [location, fetchShops]);
+  }, [location, category, fetchShops]);
 
   // Request location permission on first focus only
   useFocusEffect(
@@ -188,12 +188,16 @@ export default function ExploreScreen() {
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     if (location) {
-      fetchShops(location.latitude, location.longitude);
+      fetchShops(location.latitude, location.longitude, category);
     } else {
       setHasRequestedPermission(false);
       requestLocation();
     }
-  }, [location, fetchShops, requestLocation]);
+  }, [location, category, fetchShops, requestLocation]);
+
+  const switchCategory = useCallback((cat: 'coffee' | 'brunch') => {
+    setCategory(cat);
+  }, []);
 
   if (loading) {
     return (
@@ -235,7 +239,7 @@ export default function ExploreScreen() {
           <View>
             <Text style={styles.headerTitle}>Explore</Text>
             <Text style={styles.headerSubtitle}>
-              {shops.length} coffee shops nearby
+              {shops.length} {category === 'coffee' ? 'coffee shops' : 'brunch spots'} nearby
             </Text>
           </View>
           <TouchableOpacity
@@ -243,6 +247,23 @@ export default function ExploreScreen() {
             onPress={() => router.push('/detail', { page: 'travel' } as any)}
           >
             <Feather name="map" size={18} color="#6F4E37" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.tabRow}>
+          <TouchableOpacity
+            style={[styles.tab, category === 'coffee' && styles.tabActive]}
+            onPress={() => switchCategory('coffee')}
+          >
+            <Feather name="coffee" size={16} color={category === 'coffee' ? '#FAF6F1' : '#6F4E37'} />
+            <Text style={[styles.tabText, category === 'coffee' && styles.tabTextActive]}>Coffee</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, category === 'brunch' && styles.tabActive]}
+            onPress={() => switchCategory('brunch')}
+          >
+            <Feather name="sun" size={16} color={category === 'brunch' ? '#FAF6F1' : '#6F4E37'} />
+            <Text style={[styles.tabText, category === 'brunch' && styles.tabTextActive]}>Brunch</Text>
           </TouchableOpacity>
         </View>
 
@@ -280,6 +301,35 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: '#3C2415',
+  },
+  tabRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    paddingVertical: 11,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E8DFD5',
+  },
+  tabActive: {
+    backgroundColor: '#6F4E37',
+    borderColor: '#6F4E37',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6F4E37',
+  },
+  tabTextActive: {
+    color: '#FAF6F1',
   },
   headerSubtitle: {
     fontSize: 14,

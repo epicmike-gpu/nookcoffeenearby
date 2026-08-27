@@ -136,24 +136,34 @@ interface AmapPoi {
 
 app.get('/api/v1/shops/nearby', async (req, res) => {
   try {
-    const { latitude, longitude, radius = '3000', keywords = '咖啡' } = req.query as Record<string, string>;
+    const { latitude, longitude, radius = '3000', keywords, category = 'coffee' } = req.query as Record<string, string>;
 
     if (!latitude || !longitude) {
       return res.status(400).json({ error: 'latitude and longitude are required' });
     }
 
+    const isBrunch = category === 'brunch';
+
     if (!AMAP_KEY) {
       // Return demo data when no API key configured
-      const demoShops = getDemoShops(parseFloat(latitude), parseFloat(longitude));
+      const demoShops = getDemoShops(parseFloat(latitude), parseFloat(longitude), isBrunch);
       return res.json(demoShops);
     }
+
+    // Category-specific search config (Amap POI type codes):
+    // coffee: 咖啡厅 (050500/050501/050502/050600)
+    // brunch: 外国餐厅/西餐厅/糕饼店/甜品店/面包房 (050200/050201/050205/050800/050900/050600)
+    const effectiveKeywords = keywords !== undefined ? keywords : isBrunch ? '' : '咖啡';
+    const types = isBrunch
+      ? '050200|050201|050205|050800|050900|050600'
+      : '050500|050501|050502|050600';
 
     const response = await axios.get('https://restapi.amap.com/v3/place/around', {
       params: {
         key: AMAP_KEY,
         location: `${longitude},${latitude}`,
-        keywords: keywords,
-        types: '050500|050501|050502|050600',
+        ...(effectiveKeywords ? { keywords: effectiveKeywords } : {}),
+        types,
         radius,
         offset: 25,
         page: 1,
@@ -391,8 +401,8 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * c;
 }
 
-function getDemoShops(lat: number, lng: number) {
-  const baseShops = [
+function getDemoShops(lat: number, lng: number, isBrunch = false) {
+  const coffeeShops = [
     { name: 'Manner Coffee', address: '南京西路1688号', phone: '021-6288-1688', rating: 4.5, latOff: 0.002, lngOff: 0.003 },
     { name: 'Seesaw Coffee', address: '愚园路1107号', phone: '021-6288-2688', rating: 4.3, latOff: -0.003, lngOff: 0.001 },
     { name: '% Arabica', address: '武康路378号', phone: '021-6288-3688', rating: 4.7, latOff: 0.001, lngOff: -0.002 },
@@ -403,6 +413,17 @@ function getDemoShops(lat: number, lng: number) {
     { name: 'O.P.S. Cafe', address: '巨鹿路758号', phone: '021-6288-8688', rating: 4.8, latOff: -0.004, lngOff: -0.002 },
   ];
 
+  const brunchShops = [
+    { name: 'gaga', address: '岭南新天地L203', phone: '021-6288-1188', rating: 4.6, latOff: 0.002, lngOff: 0.002 },
+    { name: 'Wagas', address: '中区广场1楼', phone: '021-6288-2288', rating: 4.3, latOff: -0.002, lngOff: 0.004 },
+    { name: 'Baker & Spice', address: 'K11购物艺术中心B1', phone: '021-6288-3388', rating: 4.4, latOff: 0.003, lngOff: -0.003 },
+    { name: '星美乐 Baker & Star', address: '南京西路789号', phone: '021-6288-4488', rating: 4.5, latOff: -0.003, lngOff: -0.001 },
+    { name: '巴黎贝甜 Paris Baguette', address: '新世界城B1', phone: '021-6288-5588', rating: 4.0, latOff: 0.001, lngOff: 0.005 },
+    { name: 'Farm+Bread', address: '淮海中路300号', phone: '021-6288-6688', rating: 4.2, latOff: 0.004, lngOff: -0.004 },
+  ];
+
+  const baseShops = isBrunch ? brunchShops : coffeeShops;
+
   return baseShops.map((shop, i) => ({
     poi_id: `demo_${i}`,
     name: shop.name,
@@ -412,7 +433,7 @@ function getDemoShops(lat: number, lng: number) {
     latitude: lat + shop.latOff,
     longitude: lng + shop.lngOff,
     distance: (Math.random() * 2 + 0.1).toFixed(1),
-    type: '餐饮服务;咖啡厅',
+    type: isBrunch ? '餐饮服务;外国餐厅' : '餐饮服务;咖啡厅',
     photos: [],
   }));
 }
