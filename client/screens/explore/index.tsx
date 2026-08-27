@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -149,19 +149,25 @@ export default function ExploreScreen() {
     Linking.openSettings();
   };
 
-  const useDefaultLocation = useCallback(async () => {
+  const useDefaultLocation = useCallback(() => {
     // Default to Shanghai People's Square
-    const coords = { latitude: 31.2304, longitude: 121.4737 };
-    setLocation(coords);
     setError('');
-    await fetchShops(coords.latitude, coords.longitude);
-  }, [fetchShops]);
+    setLocation({ latitude: 31.2304, longitude: 121.4737 });
+  }, []);
 
   const [hasRequestedPermission, setHasRequestedPermission] = useState(false);
 
+  // Fetch shops when location changes (including "Use Shanghai" button)
+  useEffect(() => {
+    if (location) {
+      setLoading(true);
+      fetchShops(location.latitude, location.longitude);
+    }
+  }, [location, fetchShops]);
+
+  // Request location permission on first focus only
   useFocusEffect(
     useCallback(() => {
-      // Only request location on first mount, not on every focus
       if (!hasRequestedPermission && !location) {
         setHasRequestedPermission(true);
         requestLocation();
