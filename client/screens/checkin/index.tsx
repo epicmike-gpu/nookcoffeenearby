@@ -7,8 +7,10 @@ import {
   RefreshControl,
   StyleSheet,
   Image,
+  TouchableOpacity,
 } from 'react-native';
 import { Screen } from '@/components/Screen';
+import MapPicker, { MapTarget } from '@/components/MapPicker';
 import { useUser } from '@/contexts/UserContext';
 import { API_BASE_URL } from '@/utils/api';
 import { Feather } from '@expo/vector-icons';
@@ -31,6 +33,56 @@ interface CheckinItem {
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function CheckinCard({ item }: { item: CheckinItem }) {
+  const [mapPickerVisible, setMapPickerVisible] = useState(false);
+  const photos = item.shop_photos ? JSON.parse(item.shop_photos) : [];
+  const imageUrl = photos[0]?.url || '';
+
+  const mapTarget: MapTarget = {
+    name: item.shop_name,
+    latitude: item.shop_latitude,
+    longitude: item.shop_longitude,
+  };
+
+  return (
+    <View style={styles.timelineItem}>
+      <View style={styles.timelineDot}>
+        <Feather name="check-circle" size={16} color="#6F4E37" />
+      </View>
+      <View style={styles.timelineContent}>
+        <View style={styles.card}>
+          <View style={styles.cardThumbWrap}>
+            {imageUrl ? (
+              <Image source={{ uri: imageUrl }} style={styles.cardThumb} />
+            ) : (
+              <View style={[styles.cardThumb, styles.cardThumbPlaceholder]}>
+                <Feather name="coffee" size={24} color="#C4B8A8" />
+              </View>
+            )}
+          </View>
+          <View style={styles.cardBody}>
+            <Text style={styles.cardName} numberOfLines={1}>{item.shop_name}</Text>
+            <TouchableOpacity style={styles.cardRow} onPress={() => setMapPickerVisible(true)} activeOpacity={0.6}>
+              <Feather name="map-pin" size={12} color="#8B7355" />
+              <Text style={styles.cardAddress} numberOfLines={1} ellipsizeMode="tail">{item.shop_address}</Text>
+              <Feather name="navigation" size={11} color="#6F4E37" />
+            </TouchableOpacity>
+            {item.note ? (
+              <Text style={styles.note} numberOfLines={2}>&ldquo;{item.note}&rdquo;</Text>
+            ) : null}
+            <Text style={styles.date}>{formatDate(item.created_at)}</Text>
+          </View>
+        </View>
+      </View>
+      <MapPicker
+        visible={mapPickerVisible}
+        target={mapTarget}
+        onClose={() => setMapPickerVisible(false)}
+      />
+    </View>
+  );
 }
 
 export default function CheckinScreen() {
@@ -80,41 +132,7 @@ export default function CheckinScreen() {
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => {
-            const photos = item.shop_photos ? JSON.parse(item.shop_photos) : [];
-            const imageUrl = photos[0]?.url || '';
-            return (
-              <View style={styles.timelineItem}>
-                <View style={styles.timelineDot}>
-                  <Feather name="check-circle" size={16} color="#6F4E37" />
-                </View>
-                <View style={styles.timelineContent}>
-                  <View style={styles.card}>
-                    <View style={styles.cardThumbWrap}>
-                      {imageUrl ? (
-                        <Image source={{ uri: imageUrl }} style={styles.cardThumb} />
-                      ) : (
-                        <View style={[styles.cardThumb, styles.cardThumbPlaceholder]}>
-                          <Feather name="coffee" size={24} color="#C4B8A8" />
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.cardBody}>
-                      <Text style={styles.cardName} numberOfLines={1}>{item.shop_name}</Text>
-                      <View style={styles.cardRow}>
-                        <Feather name="map-pin" size={12} color="#8B7355" />
-                        <Text style={styles.cardAddress} numberOfLines={1} ellipsizeMode="tail">{item.shop_address}</Text>
-                      </View>
-                      {item.note ? (
-                        <Text style={styles.note} numberOfLines={2}>"{item.note}"</Text>
-                      ) : null}
-                      <Text style={styles.date}>{formatDate(item.created_at)}</Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            );
-          }}
+          renderItem={({ item }) => <CheckinCard item={item} />}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={fetchCheckins} tintColor="#6F4E37" />

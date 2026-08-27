@@ -21,13 +21,6 @@ export default function ProfileScreen() {
   const [nickname, setNickname] = useState('');
   const [stats, setStats] = useState({ wishlist_count: 0, checkin_count: 0 });
 
-  useEffect(() => {
-    if (user) {
-      setNickname(user.nickname);
-      fetchStats();
-    }
-  }, [user]);
-
   const fetchStats = async () => {
     if (!user) return;
     try {
@@ -38,6 +31,14 @@ export default function ProfileScreen() {
       // silent
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      setNickname(user.nickname);
+      fetchStats();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleSave = async () => {
     if (!user || !nickname.trim()) return;

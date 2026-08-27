@@ -19,10 +19,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "supportsTablet": true,
       "bundleIdentifier": "com.coffeeshop.explorer",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": `新项目需要访问您的位置以提供周边咖啡店搜索及导航功能。`,
-        "NSCameraUsageDescription": `新项目需要访问相机以拍摄打卡照片。`,
-        "NSPhotoLibraryUsageDescription": `新项目需要访问您的相册，以便您上传或保存图片。`,
-        "NSMicrophoneUsageDescription": `新项目需要访问麦克风以录制视频声音。`
+        "NSLocationWhenInUseUsageDescription": `Coffee Explorer needs your location to find nearby coffee shops and provide navigation.`,
+        "NSCameraUsageDescription": `Coffee Explorer needs camera access to take check-in photos.`,
+        "NSPhotoLibraryUsageDescription": `Coffee Explorer needs photo library access so you can upload or save images.`,
+        "NSMicrophoneUsageDescription": `Coffee Explorer needs microphone access to record video sound.`,
+        "LSApplicationQueriesSchemes": [
+          "iosamap",
+          "baidumap",
+          "comgooglemaps",
+          "tel"
+        ]
       }
     },
     "android": {

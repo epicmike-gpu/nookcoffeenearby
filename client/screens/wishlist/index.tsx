@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { Screen } from '@/components/Screen';
+import MapPicker, { MapTarget } from '@/components/MapPicker';
 import { useUser } from '@/contexts/UserContext';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { API_BASE_URL } from '@/utils/api';
@@ -40,6 +41,60 @@ function StarRating({ rating }: { rating: number }) {
       ))}
       <Text style={styles.ratingText}>{rating > 0 ? rating.toFixed(1) : 'N/A'}</Text>
     </View>
+  );
+}
+
+function WishlistCard({
+  item,
+  onPressCard,
+  onRemove,
+}: {
+  item: WishlistItem;
+  onPressCard: (item: WishlistItem) => void;
+  onRemove: (id: string, name: string) => void;
+}) {
+  const [mapPickerVisible, setMapPickerVisible] = useState(false);
+  const photos = item.shop_photos ? JSON.parse(item.shop_photos) : [];
+  const imageUrl = photos[0]?.url || '';
+
+  const mapTarget: MapTarget = {
+    name: item.shop_name,
+    latitude: item.shop_latitude,
+    longitude: item.shop_longitude,
+  };
+
+  return (
+    <TouchableOpacity style={styles.card} onPress={() => onPressCard(item)} activeOpacity={0.8}>
+      <View style={styles.cardLeft}>
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.cardImage} />
+        ) : (
+          <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
+            <Feather name="coffee" size={24} color="#C4B8A8" />
+          </View>
+        )}
+      </View>
+      <View style={styles.cardContent}>
+        <Text style={styles.cardName} numberOfLines={1}>{item.shop_name}</Text>
+        <TouchableOpacity style={styles.cardRow} onPress={() => setMapPickerVisible(true)} activeOpacity={0.6}>
+          <Feather name="map-pin" size={12} color="#8B7355" />
+          <Text style={styles.cardAddress} numberOfLines={1} ellipsizeMode="tail">{item.shop_address}</Text>
+          <Feather name="navigation" size={11} color="#6F4E37" />
+        </TouchableOpacity>
+        <StarRating rating={item.shop_rating || 0} />
+      </View>
+      <TouchableOpacity
+        style={styles.removeBtn}
+        onPress={() => onRemove(item.id, item.shop_name)}
+      >
+        <Feather name="x" size={18} color="#C4B8A8" />
+      </TouchableOpacity>
+      <MapPicker
+        visible={mapPickerVisible}
+        target={mapTarget}
+        onClose={() => setMapPickerVisible(false)}
+      />
+    </TouchableOpacity>
   );
 }
 
@@ -120,41 +175,9 @@ export default function WishlistScreen() {
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => {
-            const photos = item.shop_photos ? JSON.parse(item.shop_photos) : [];
-            const imageUrl = photos[0]?.url || '';
-            return (
-              <TouchableOpacity
-                style={styles.card}
-                onPress={() => handleViewDetail(item)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.cardLeft}>
-                  {imageUrl ? (
-                    <Image source={{ uri: imageUrl }} style={styles.cardImage} />
-                  ) : (
-                    <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
-                      <Feather name="coffee" size={24} color="#C4B8A8" />
-                    </View>
-                  )}
-                </View>
-                <View style={styles.cardContent}>
-                  <Text style={styles.cardName} numberOfLines={1}>{item.shop_name}</Text>
-                  <View style={styles.cardRow}>
-                    <Feather name="map-pin" size={12} color="#8B7355" />
-                    <Text style={styles.cardAddress} numberOfLines={1}>{item.shop_address}</Text>
-                  </View>
-                  <StarRating rating={item.shop_rating || 0} />
-                </View>
-                <TouchableOpacity
-                  style={styles.removeBtn}
-                  onPress={() => handleRemove(item.id, item.shop_name)}
-                >
-                  <Feather name="x" size={18} color="#C4B8A8" />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            );
-          }}
+          renderItem={({ item }) => (
+            <WishlistCard item={item} onPressCard={handleViewDetail} onRemove={handleRemove} />
+          )}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={fetchWishlist} tintColor="#6F4E37" />
@@ -163,7 +186,7 @@ export default function WishlistScreen() {
             <View style={styles.center}>
               <Feather name="heart" size={48} color="#C4B8A8" />
               <Text style={styles.emptyText}>No places saved yet</Text>
-              <Text style={styles.emptySubtext}>Tap "Want to Go" on a coffee shop to save it</Text>
+              <Text style={styles.emptySubtext}>Tap &ldquo;Want to Go&rdquo; on a coffee shop to save it</Text>
             </View>
           }
         />

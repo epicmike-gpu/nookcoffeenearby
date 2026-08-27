@@ -11,6 +11,7 @@ import {
   Linking,
 } from 'react-native';
 import { Screen } from '@/components/Screen';
+import MapPicker, { MapTarget } from '@/components/MapPicker';
 import { useUser } from '@/contexts/UserContext';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { API_BASE_URL } from '@/utils/api';
@@ -51,7 +52,14 @@ function StarRating({ rating }: { rating: number }) {
 
 function ShopCard({ shop }: { shop: Shop }) {
   const router = useSafeRouter();
+  const [mapPickerVisible, setMapPickerVisible] = useState(false);
   const imageUrl = shop.photos?.[0]?.url || '';
+
+  const mapTarget: MapTarget = {
+    name: shop.name,
+    latitude: shop.latitude,
+    longitude: shop.longitude,
+  };
 
   const handlePress = () => {
     router.push('/detail', {
@@ -88,11 +96,17 @@ function ShopCard({ shop }: { shop: Shop }) {
           {shop.phone ? <Feather name="phone" size={14} color="#B3A18C" /> : null}
         </View>
         <StarRating rating={shop.rating} />
-        <View style={styles.cardRow}>
+        <TouchableOpacity style={styles.cardRow} onPress={() => setMapPickerVisible(true)} activeOpacity={0.6}>
           <Feather name="map-pin" size={12} color="#8B7355" />
           <Text style={styles.cardAddress} numberOfLines={1} ellipsizeMode="tail">{shop.address}</Text>
-        </View>
+          <Feather name="navigation" size={11} color="#6F4E37" />
+        </TouchableOpacity>
       </View>
+      <MapPicker
+        visible={mapPickerVisible}
+        target={mapTarget}
+        onClose={() => setMapPickerVisible(false)}
+      />
     </TouchableOpacity>
   );
 }

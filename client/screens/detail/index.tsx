@@ -9,8 +9,10 @@ import {
   Image,
   Alert,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { Screen } from '@/components/Screen';
+import MapPicker, { MapTarget } from '@/components/MapPicker';
 import { useUser } from '@/contexts/UserContext';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { API_BASE_URL } from '@/utils/api';
@@ -38,9 +40,23 @@ export default function DetailScreen() {
   const [checkinNote, setCheckinNote] = useState('');
   const [showCheckinForm, setShowCheckinForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [mapPickerVisible, setMapPickerVisible] = useState(false);
 
   const photos: { title: string; url: string }[] = params.photos ? JSON.parse(params.photos) : [];
   const rating = parseFloat(params.rating || '0');
+
+  const mapTarget: MapTarget = {
+    name: params.name,
+    latitude: parseFloat(params.latitude || '0'),
+    longitude: parseFloat(params.longitude || '0'),
+  };
+
+  const handleCall = () => {
+    if (!params.phone) return;
+    Linking.openURL(`tel:${params.phone}`).catch(() => {
+      Alert.alert('Error', 'Unable to make a call');
+    });
+  };
 
   const handleWishlist = async () => {
     if (!user) return;
@@ -148,16 +164,18 @@ export default function DetailScreen() {
             <Text style={styles.ratingNum}>{rating > 0 ? rating.toFixed(1) : 'N/A'}</Text>
           </View>
 
-          <View style={styles.infoRow}>
+          <TouchableOpacity style={styles.infoRow} onPress={() => setMapPickerVisible(true)} activeOpacity={0.6}>
             <Feather name="map-pin" size={16} color="#8B7355" />
             <Text style={styles.infoText}>{params.address}</Text>
-          </View>
+            <Feather name="navigation" size={14} color="#6F4E37" />
+          </TouchableOpacity>
 
           {params.phone ? (
-            <View style={styles.infoRow}>
+            <TouchableOpacity style={styles.infoRow} onPress={handleCall} activeOpacity={0.6}>
               <Feather name="phone" size={16} color="#8B7355" />
               <Text style={styles.infoText}>{params.phone}</Text>
-            </View>
+              <Feather name="phone-call" size={14} color="#6F4E37" />
+            </TouchableOpacity>
           ) : null}
 
           {params.distance ? (
@@ -223,6 +241,12 @@ export default function DetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      <MapPicker
+        visible={mapPickerVisible}
+        target={mapTarget}
+        onClose={() => setMapPickerVisible(false)}
+      />
     </Screen>
   );
 }
@@ -291,9 +315,13 @@ const styles = StyleSheet.create({
   },
   infoRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 10,
     marginBottom: 10,
+    backgroundColor: '#FAF6F1',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   infoText: {
     fontSize: 14,
