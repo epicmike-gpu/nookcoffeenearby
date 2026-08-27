@@ -90,7 +90,7 @@ function ShopCard({ shop }: { shop: Shop }) {
         <StarRating rating={shop.rating} />
         <View style={styles.cardRow}>
           <Feather name="map-pin" size={12} color="#8B7355" />
-          <Text style={styles.cardAddress} numberOfLines={2}>{shop.address}</Text>
+          <Text style={styles.cardAddress} numberOfLines={1} ellipsizeMode="tail">{shop.address}</Text>
         </View>
       </View>
     </TouchableOpacity>

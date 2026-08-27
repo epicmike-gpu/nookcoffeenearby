@@ -103,7 +103,7 @@ export default function CheckinScreen() {
                       <Text style={styles.cardName} numberOfLines={1}>{item.shop_name}</Text>
                       <View style={styles.cardRow}>
                         <Feather name="map-pin" size={12} color="#8B7355" />
-                        <Text style={styles.cardAddress} numberOfLines={2}>{item.shop_address}</Text>
+                        <Text style={styles.cardAddress} numberOfLines={1} ellipsizeMode="tail">{item.shop_address}</Text>
                       </View>
                       {item.note ? (
                         <Text style={styles.note} numberOfLines={2}>"{item.note}"</Text>
