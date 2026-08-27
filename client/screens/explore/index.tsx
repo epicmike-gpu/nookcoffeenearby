@@ -157,10 +157,16 @@ export default function ExploreScreen() {
     await fetchShops(coords.latitude, coords.longitude);
   }, [fetchShops]);
 
+  const [hasRequestedPermission, setHasRequestedPermission] = useState(false);
+
   useFocusEffect(
     useCallback(() => {
-      requestLocation();
-    }, [requestLocation])
+      // Only request location on first mount, not on every focus
+      if (!hasRequestedPermission && !location) {
+        setHasRequestedPermission(true);
+        requestLocation();
+      }
+    }, [hasRequestedPermission, location, requestLocation])
   );
 
   const onRefresh = useCallback(() => {
@@ -168,6 +174,7 @@ export default function ExploreScreen() {
     if (location) {
       fetchShops(location.latitude, location.longitude);
     } else {
+      setHasRequestedPermission(false);
       requestLocation();
     }
   }, [location, fetchShops, requestLocation]);
