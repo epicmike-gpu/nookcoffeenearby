@@ -1,179 +1,134 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
-  StyleSheet,
   TextInput,
-  Alert,
-  Platform,
+  TouchableOpacity,
   ScrollView,
+  StyleSheet,
+  Alert,
 } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useUser } from '@/contexts/UserContext';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
-import { Feather } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
 import { API_BASE_URL } from '@/utils/api';
-
-interface UserStats {
-  wishlist_count: number;
-  checkin_count: number;
-}
+import { Feather } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
-  const { user, updateUser } = useUser();
+  const { user, refreshUser } = useUser();
   const router = useSafeRouter();
-  const [stats, setStats] = useState<UserStats>({ wishlist_count: 0, checkin_count: 0 });
   const [editing, setEditing] = useState(false);
-  const [nickname, setNickname] = useState(user?.nickname || '');
+  const [nickname, setNickname] = useState('');
+  const [stats, setStats] = useState({ wishlist_count: 0, checkin_count: 0 });
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!user) return;
-      /**
-       * 服务端文件：server/src/index.ts
-       * 接口：GET /api/v1/users/stats/:userId
-       * Path 参数：userId: string
-       */
-      fetch(`${API_BASE_URL}/users/stats/${user.id}`)
-        .then(res => res.json())
-        .then(data => setStats(data))
-        .catch(err => console.error('Failed to fetch stats:', err));
-    }, [user])
-  );
-
-  const handleSaveNickname = async () => {
-    if (!nickname.trim()) {
-      Alert.alert('提示', '昵称不能为空');
-      return;
+  useEffect(() => {
+    if (user) {
+      setNickname(user.nickname);
+      fetchStats();
     }
-    await updateUser({ nickname: nickname.trim() });
-    setEditing(false);
+  }, [user]);
+
+  const fetchStats = async () => {
+    if (!user) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/users/stats/${user.id}`);
+      const data = await res.json();
+      setStats(data);
+    } catch {
+      // silent
+    }
   };
 
-  const handleTravelPlan = () => {
-    if (stats.wishlist_count === 0) {
-      Alert.alert('提示', '还没有想去的咖啡店，先去探索添加吧！');
-      return;
+  const handleSave = async () => {
+    if (!user || !nickname.trim()) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device_id: user.device_id, nickname: nickname.trim() }),
+      });
+      if (res.ok) {
+        await refreshUser();
+        setEditing(false);
+        Alert.alert('Success', 'Profile updated');
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to update');
     }
-    router.push('/detail', { travel_plan: 'true' });
   };
+
+  if (!user) return null;
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Profile Header */}
-        <View style={styles.profileHeader}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {(user?.nickname || '咖')[0]}
-              </Text>
-            </View>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.avatar}>
+            <Feather name="user" size={32} color="#FFFDF9" />
+          </View>
+          <Text style={styles.deviceId}>ID: {user.device_id.slice(0, 8)}...</Text>
+        </View>
+
+        {/* Profile Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Profile</Text>
+            <TouchableOpacity onPress={() => setEditing(!editing)}>
+              <Feather name={editing ? 'x' : 'edit-2'} size={18} color="#6F4E37" />
+            </TouchableOpacity>
           </View>
 
           {editing ? (
-            <View style={styles.editRow}>
+            <View>
               <TextInput
-                style={styles.nicknameInput}
+                style={styles.input}
                 value={nickname}
                 onChangeText={setNickname}
-                placeholder="输入昵称"
+                placeholder="Enter your nickname"
                 placeholderTextColor="#C4B8A8"
-                autoFocus
-                onSubmitEditing={handleSaveNickname}
               />
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveNickname}>
-                <Feather name="check" size={18} color="#6F4E37" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => { setEditing(false); setNickname(user?.nickname || ''); }}>
-                <Feather name="x" size={18} color="#8B7355" />
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+                <Text style={styles.saveText}>Save</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity onPress={() => setEditing(true)} style={styles.nameRow}>
-              <Text style={styles.nickname}>{user?.nickname || '咖啡爱好者'}</Text>
-              <Feather name="edit-2" size={14} color="#8B7355" />
-            </TouchableOpacity>
+            <Text style={styles.nickname}>{user.nickname}</Text>
           )}
-          <Text style={styles.memberSince}>
-            加入于 {user?.created_at ? new Date(user.created_at).toLocaleDateString('zh-CN') : ''}
-          </Text>
         </View>
 
-        {/* Stats Cards */}
+        {/* Stats */}
         <View style={styles.statsRow}>
-          <TouchableOpacity
-            style={styles.statCard}
-            onPress={() => router.navigate('/')}
-          >
-            <View style={styles.statIconContainer}>
-              <Feather name="compass" size={22} color="#6F4E37" />
-            </View>
-            <Text style={styles.statNumber}>{stats.wishlist_count}</Text>
-            <Text style={styles.statLabel}>想去</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.statCard}
-            onPress={() => router.navigate('/')}
-          >
-            <View style={[styles.statIconContainer, { backgroundColor: 'rgba(91,140,90,0.1)' }]}>
-              <Feather name="check-circle" size={22} color="#5B8C5A" />
-            </View>
-            <Text style={styles.statNumber}>{stats.checkin_count}</Text>
-            <Text style={styles.statLabel}>已打卡</Text>
-          </TouchableOpacity>
+          <View style={styles.statCard}>
+            <Feather name="heart" size={24} color="#D4A574" />
+            <Text style={styles.statNum}>{stats.wishlist_count}</Text>
+            <Text style={styles.statLabel}>Want to Go</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Feather name="check-circle" size={24} color="#6F4E37" />
+            <Text style={styles.statNum}>{stats.checkin_count}</Text>
+            <Text style={styles.statLabel}>Check-ins</Text>
+          </View>
         </View>
 
-        {/* Travel Plan Button */}
-        <TouchableOpacity style={styles.travelBtn} onPress={handleTravelPlan}>
-          <View style={styles.travelBtnContent}>
-            <Feather name="map" size={20} color="#FFFFFF" />
-            <View style={styles.travelBtnText}>
-              <Text style={styles.travelBtnTitle}>旅行规划</Text>
-              <Text style={styles.travelBtnSubtitle}>根据你想去的咖啡店规划路线</Text>
-            </View>
-            <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.7)" />
+        {/* Travel Plan */}
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push('/detail', { page: 'travel' } as any)}
+        >
+          <View style={styles.menuIcon}>
+            <Feather name="map" size={20} color="#6F4E37" />
           </View>
+          <Text style={styles.menuText}>Travel Plan</Text>
+          <Feather name="chevron-right" size={20} color="#C4B8A8" />
         </TouchableOpacity>
 
-        {/* Quick Actions */}
-        <View style={styles.actionsContainer}>
-          <Text style={styles.actionsTitle}>快捷操作</Text>
-          <TouchableOpacity
-            style={styles.actionItem}
-            onPress={() => router.navigate('/')}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: 'rgba(111,78,55,0.08)' }]}>
-              <Feather name="search" size={18} color="#6F4E37" />
-            </View>
-            <Text style={styles.actionText}>探索附近</Text>
-            <Feather name="chevron-right" size={16} color="#C4B8A8" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionItem}
-            onPress={() => router.navigate('/')}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: 'rgba(212,165,116,0.12)' }]}>
-              <Feather name="heart" size={18} color="#D4A574" />
-            </View>
-            <Text style={styles.actionText}>想去清单</Text>
-            <Feather name="chevron-right" size={16} color="#C4B8A8" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionItem}
-            onPress={() => router.navigate('/')}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: 'rgba(91,140,90,0.08)' }]}>
-              <Feather name="map-pin" size={18} color="#5B8C5A" />
-            </View>
-            <Text style={styles.actionText}>打卡记录</Text>
-            <Feather name="chevron-right" size={16} color="#C4B8A8" />
-          </TouchableOpacity>
+        {/* About */}
+        <View style={styles.aboutCard}>
+          <Text style={styles.aboutTitle}>Coffee Explorer</Text>
+          <Text style={styles.aboutText}>
+            Discover amazing coffee shops around you. Save your favorites, check in when you visit, and plan your coffee adventures.
+          </Text>
         </View>
       </ScrollView>
     </Screen>
@@ -181,135 +136,151 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  profileHeader: {
+  container: { flex: 1 },
+  content: { paddingBottom: 40 },
+  header: {
     alignItems: 'center',
-    paddingTop: Platform.OS === 'web' ? 30 : 60,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 20,
   },
-  avatarContainer: { marginBottom: 16 },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F0E8DD',
-    alignItems: 'center',
+    backgroundColor: '#6F4E37',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  deviceId: {
+    fontSize: 12,
+    color: '#C4B8A8',
+  },
+  card: {
+    backgroundColor: '#FFFDF9',
+    marginHorizontal: 16,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: '#6F4E37',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  avatarText: { fontSize: 32, fontWeight: '700', color: '#6F4E37' },
-  editRow: {
+  cardHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 12,
   },
-  nicknameInput: {
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3C2415',
+  },
+  nickname: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#2C1810',
-    borderBottomWidth: 2,
-    borderBottomColor: '#D4A574',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    minWidth: 120,
-    textAlign: 'center',
+    fontWeight: '600',
+    color: '#3C2415',
   },
-  saveBtn: { padding: 6 },
-  cancelBtn: { padding: 6 },
-  nameRow: {
-    flexDirection: 'row',
+  input: {
+    backgroundColor: '#F5EDE4',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    color: '#3C2415',
+    marginBottom: 12,
+  },
+  saveBtn: {
+    backgroundColor: '#6F4E37',
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: 'center',
-    gap: 8,
   },
-  nickname: { fontSize: 22, fontWeight: '700', color: '#2C1810' },
-  memberSince: { fontSize: 13, color: '#8B7355', marginTop: 6 },
+  saveText: {
+    color: '#FFFDF9',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   statsRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-    shadowColor: '#6F4E37',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  statIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(111,78,55,0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  statNumber: { fontSize: 28, fontWeight: '700', color: '#2C1810' },
-  statLabel: { fontSize: 13, color: '#8B7355', marginTop: 2 },
-  travelBtn: {
-    marginHorizontal: 20,
-    marginBottom: 24,
-    backgroundColor: '#6F4E37',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#6F4E37',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  travelBtnContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  travelBtnText: { flex: 1 },
-  travelBtnTitle: { fontSize: 17, fontWeight: '700', color: '#FFFFFF' },
-  travelBtnSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  actionsContainer: {
-    paddingHorizontal: 20,
-  },
-  actionsTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#2C1810',
-    marginBottom: 12,
-  },
-  actionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDF9',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 8,
-    gap: 12,
+    padding: 20,
+    alignItems: 'center',
     shadowColor: '#6F4E37',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.06,
     shadowRadius: 6,
-    elevation: 1,
+    elevation: 2,
   },
-  actionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  statNum: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#3C2415',
+    marginTop: 8,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#8B7355',
+    marginTop: 4,
+  },
+  menuItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#FFFDF9',
+    marginHorizontal: 16,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#6F4E37',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  actionText: { flex: 1, fontSize: 15, fontWeight: '600', color: '#2C1810' },
+  menuIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F5EDE4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  menuText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#3C2415',
+  },
+  aboutCard: {
+    backgroundColor: '#FFFDF9',
+    marginHorizontal: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#6F4E37',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  aboutTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3C2415',
+    marginBottom: 8,
+  },
+  aboutText: {
+    fontSize: 13,
+    color: '#8B7355',
+    lineHeight: 20,
+  },
 });

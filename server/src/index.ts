@@ -214,7 +214,7 @@ app.get('/api/v1/wishlists/:userId', async (req, res) => {
 // POST /api/v1/wishlists - Add to wishlist
 app.post('/api/v1/wishlists', async (req, res) => {
   try {
-    const { user_id, shop_name, shop_address, shop_phone, shop_rating, shop_latitude, shop_longitude, shop_poi_id, note } = req.body;
+    const { user_id, shop_name, shop_address, shop_phone, shop_rating, shop_latitude, shop_longitude, shop_poi_id, shop_photos, note } = req.body;
 
     if (!user_id || !shop_name || !shop_address || !shop_latitude || !shop_longitude) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -222,7 +222,7 @@ app.post('/api/v1/wishlists', async (req, res) => {
 
     const { data, error } = await supabase
       .from('wishlists')
-      .insert({ user_id, shop_name, shop_address, shop_phone, shop_rating, shop_latitude, shop_longitude, shop_poi_id, note })
+      .insert({ user_id, shop_name, shop_address, shop_phone, shop_rating, shop_latitude, shop_longitude, shop_poi_id, shop_photos: shop_photos ? JSON.stringify(shop_photos) : '[]', note })
       .select()
       .single();
     if (error) throw new Error(`Insert failed: ${error.message}`);
@@ -277,7 +277,7 @@ app.get('/api/v1/checkins/:userId', async (req, res) => {
 // POST /api/v1/checkins - Add check-in
 app.post('/api/v1/checkins', async (req, res) => {
   try {
-    const { user_id, shop_name, shop_address, shop_phone, shop_rating, shop_latitude, shop_longitude, shop_poi_id, note, photo_url } = req.body;
+    const { user_id, shop_name, shop_address, shop_phone, shop_rating, shop_latitude, shop_longitude, shop_poi_id, shop_photos, note, photo_url } = req.body;
 
     if (!user_id || !shop_name || !shop_address || !shop_latitude || !shop_longitude) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -285,7 +285,7 @@ app.post('/api/v1/checkins', async (req, res) => {
 
     const { data, error } = await supabase
       .from('checkins')
-      .insert({ user_id, shop_name, shop_address, shop_phone, shop_rating, shop_latitude, shop_longitude, shop_poi_id, note, photo_url })
+      .insert({ user_id, shop_name, shop_address, shop_phone, shop_rating, shop_latitude, shop_longitude, shop_poi_id, shop_photos: shop_photos ? JSON.stringify(shop_photos) : '[]', note, photo_url })
       .select()
       .single();
     if (error) throw new Error(`Insert failed: ${error.message}`);

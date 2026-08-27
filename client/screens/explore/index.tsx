@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   StyleSheet,
-  Platform,
+  Image,
 } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useUser } from '@/contexts/UserContext';
@@ -30,22 +30,6 @@ interface Shop {
   photos: { title: string; url: string }[];
 }
 
-// Coffee shop images from Unsplash
-const shopImages: Record<string, string> = {
-  'demo_0': 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&h=300&fit=crop',
-  'demo_1': 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=300&fit=crop',
-  'demo_2': 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=300&fit=crop',
-  'demo_3': 'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?w=400&h=300&fit=crop',
-  'demo_4': 'https://images.unsplash.com/photo-1507133750040-4a8f57021571?w=400&h=300&fit=crop',
-  'demo_5': 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=300&fit=crop',
-  'demo_6': 'https://images.unsplash.com/photo-1559496417-e7f25cb247f3?w=400&h=300&fit=crop',
-  'demo_7': 'https://images.unsplash.com/photo-1453614512568-c4024d13c247?w=400&h=300&fit=crop',
-};
-
-function getDefaultImage(poiId: string): string {
-  return shopImages[poiId] || `https://images.unsplash.com/photo-${1501339847302 + parseInt(poiId.replace(/\D/g, '') || '0', 10)}-ac426a4a7cbb?w=400&h=300&fit=crop`;
-}
-
 function StarRating({ rating }: { rating: number }) {
   const fullStars = Math.floor(rating);
   const hasHalf = rating - fullStars >= 0.5;
@@ -59,13 +43,14 @@ function StarRating({ rating }: { rating: number }) {
           color={i < fullStars ? '#D4A574' : i === fullStars && hasHalf ? '#D4A574' : '#E0D5C8'}
         />
       ))}
-      <Text style={styles.ratingText}>{rating > 0 ? rating.toFixed(1) : '暂无'}</Text>
+      <Text style={styles.ratingText}>{rating > 0 ? rating.toFixed(1) : 'N/A'}</Text>
     </View>
   );
 }
 
 function ShopCard({ shop }: { shop: Shop }) {
   const router = useSafeRouter();
+  const imageUrl = shop.photos?.[0]?.url || '';
 
   const handlePress = () => {
     router.push('/detail', {
@@ -77,19 +62,23 @@ function ShopCard({ shop }: { shop: Shop }) {
       latitude: shop.latitude.toString(),
       longitude: shop.longitude.toString(),
       distance: shop.distance,
-      image: getDefaultImage(shop.poi_id),
+      photos: JSON.stringify(shop.photos || []),
     });
   };
 
   return (
     <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.8}>
       <View style={styles.cardImageContainer}>
-        <View style={styles.cardImage}>
-          <Feather name="coffee" size={48} color="#C4B8A8" />
-        </View>
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.cardImage} />
+        ) : (
+          <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
+            <Feather name="coffee" size={48} color="#C4B8A8" />
+          </View>
+        )}
         <View style={styles.distanceBadge}>
           <Feather name="navigation" size={10} color="#6F4E37" />
-          <Text style={styles.distanceText}>{shop.distance}km</Text>
+          <Text style={styles.distanceText}>{shop.distance}m</Text>
         </View>
       </View>
       <View style={styles.cardContent}>
@@ -98,7 +87,15 @@ function ShopCard({ shop }: { shop: Shop }) {
           <Feather name="map-pin" size={12} color="#8B7355" />
           <Text style={styles.cardAddress} numberOfLines={1}>{shop.address}</Text>
         </View>
-        <StarRating rating={shop.rating} />
+        <View style={styles.cardBottom}>
+          <StarRating rating={shop.rating} />
+          {shop.phone ? (
+            <View style={styles.phoneRow}>
+              <Feather name="phone" size={12} color="#8B7355" />
+              <Text style={styles.phoneText} numberOfLines={1}>{shop.phone}</Text>
+            </View>
+          ) : null}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -106,227 +103,180 @@ function ShopCard({ shop }: { shop: Shop }) {
 
 export default function ExploreScreen() {
   const { user } = useUser();
+  const router = useSafeRouter();
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-
-  const getLocation = async (): Promise<{ latitude: number; longitude: number } | null> => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLocationError('请授权位置权限以获取附近咖啡店');
-        // Fallback to default location (Shanghai)
-        const fallback = { latitude: 31.2304, longitude: 121.4737 };
-        setLocation(fallback);
-        return fallback;
-      }
-      const loc = await Location.getCurrentPositionAsync({});
-      const result = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
-      setLocation(result);
-      setLocationError(null);
-      return result;
-    } catch {
-      setLocationError('无法获取位置，使用默认位置');
-      const fallback = { latitude: 31.2304, longitude: 121.4737 };
-      setLocation(fallback);
-      return fallback;
-    }
-  };
+  const [error, setError] = useState('');
 
   const fetchShops = useCallback(async (lat: number, lng: number) => {
     try {
-      /**
-       * 服务端文件：server/src/index.ts
-       * 接口：GET /api/v1/shops/nearby
-       * Query 参数：latitude: string, longitude: string, radius?: string, keywords?: string
-       */
-      const response = await fetch(
-        `${API_BASE_URL}/shops/nearby?latitude=${lat}&longitude=${lng}&radius=3000&keywords=咖啡`
+      const res = await fetch(
+        `${API_BASE_URL}/api/v1/shops/nearby?latitude=${lat}&longitude=${lng}&radius=3000&keywords=%E5%92%96%E5%95%A1`
       );
-      if (!response.ok) throw new Error('Failed to fetch shops');
-      const data = await response.json();
+      const data = await res.json();
       setShops(data);
-    } catch (error) {
-      console.error('Failed to fetch shops:', error);
+    } catch (err) {
+      setError('Failed to load shops');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
+  const requestLocation = useCallback(async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setError('Location permission denied');
+        setLoading(false);
+        return;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+      setLocation(coords);
+      await fetchShops(coords.latitude, coords.longitude);
+    } catch {
+      setError('Failed to get location');
+      setLoading(false);
+    }
+  }, [fetchShops]);
+
   useFocusEffect(
     useCallback(() => {
-      const init = async () => {
-        let loc = location;
-        if (!loc) {
-          loc = await getLocation();
-        }
-        if (loc) {
-          fetchShops(loc.latitude, loc.longitude);
-        }
-      };
-      init();
-    }, [location])
+      requestLocation();
+    }, [requestLocation])
   );
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
-    await getLocation();
     if (location) {
-      await fetchShops(location.latitude, location.longitude);
+      fetchShops(location.latitude, location.longitude);
+    } else {
+      requestLocation();
     }
-  };
-
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <View style={styles.headerTop}>
-        <View>
-          <Text style={styles.greeting}>下午好</Text>
-          <Text style={styles.subtitle}>发现身边的好咖啡</Text>
-        </View>
-        <TouchableOpacity style={styles.locationBtn} onPress={getLocation}>
-          <Feather name="crosshair" size={18} color="#6F4E37" />
-          <Text style={styles.locationBtnText}>定位</Text>
-        </TouchableOpacity>
-      </View>
-      {locationError && (
-        <View style={styles.errorBanner}>
-          <Feather name="alert-circle" size={14} color="#B8764E" />
-          <Text style={styles.errorText}>{locationError}</Text>
-        </View>
-      )}
-    </View>
-  );
+  }, [location, fetchShops, requestLocation]);
 
   if (loading) {
     return (
-      <Screen safeAreaEdges={['left', 'right']}>
-        <View style={styles.loadingContainer}>
+      <Screen>
+        <View style={styles.center}>
           <ActivityIndicator size="large" color="#6F4E37" />
-          <Text style={styles.loadingText}>正在寻找附近的好咖啡...</Text>
+          <Text style={styles.loadingText}>Finding nearby coffee shops...</Text>
+        </View>
+      </Screen>
+    );
+  }
+
+  if (error) {
+    return (
+      <Screen>
+        <View style={styles.center}>
+          <Feather name="alert-circle" size={48} color="#C4B8A8" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={requestLocation}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
         </View>
       </Screen>
     );
   }
 
   return (
-    <Screen safeAreaEdges={['left', 'right']}>
-      <FlatList
-        data={shops}
-        keyExtractor={(item) => item.poi_id}
-        renderItem={({ item }) => <ShopCard shop={item} />}
-        ListHeaderComponent={renderHeader}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#6F4E37"
-            colors={['#6F4E37']}
-          />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Feather name="coffee" size={48} color="#C4B8A8" />
-            <Text style={styles.emptyText}>附近暂无咖啡店</Text>
-            <Text style={styles.emptySubtext}>试试扩大搜索范围</Text>
+    <Screen>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>Explore</Text>
+            <Text style={styles.headerSubtitle}>
+              {shops.length} coffee shops nearby
+            </Text>
           </View>
-        }
-      />
+          <TouchableOpacity
+            style={styles.planBtn}
+            onPress={() => router.push('/detail', { page: 'travel' } as any)}
+          >
+            <Feather name="map" size={18} color="#6F4E37" />
+          </TouchableOpacity>
+        </View>
+
+        <FlatList
+          data={shops}
+          keyExtractor={(item) => item.poi_id}
+          renderItem={({ item }) => <ShopCard shop={item} />}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6F4E37" />
+          }
+          ListEmptyComponent={
+            <View style={styles.center}>
+              <Feather name="coffee" size={48} color="#C4B8A8" />
+              <Text style={styles.emptyText}>No coffee shops found nearby</Text>
+            </View>
+          }
+        />
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FAF6F1',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 15,
-    color: '#8B7355',
-  },
+  container: { flex: 1 },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'web' ? 20 : 60,
-    paddingBottom: 16,
-    backgroundColor: '#FAF6F1',
-  },
-  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
-  greeting: {
+  headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#2C1810',
+    color: '#3C2415',
   },
-  subtitle: {
-    fontSize: 15,
+  headerSubtitle: {
+    fontSize: 14,
     color: '#8B7355',
-    marginTop: 4,
+    marginTop: 2,
   },
-  locationBtn: {
-    flexDirection: 'row',
+  planBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F5EDE4',
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(111,78,55,0.08)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 4,
   },
-  locationBtnText: {
-    fontSize: 13,
-    color: '#6F4E37',
-    fontWeight: '600',
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(212,165,116,0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    marginTop: 12,
-    gap: 6,
-  },
-  errorText: {
-    fontSize: 13,
-    color: '#B8764E',
-    flex: 1,
-  },
-  listContent: {
-    paddingBottom: 100,
+  list: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    marginHorizontal: 20,
-    marginBottom: 16,
+    backgroundColor: '#FFFDF9',
+    borderRadius: 16,
+    marginBottom: 14,
     overflow: 'hidden',
     shadowColor: '#6F4E37',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowRadius: 8,
     elevation: 3,
   },
   cardImageContainer: {
     position: 'relative',
+    height: 160,
   },
   cardImage: {
-    height: 140,
-    backgroundColor: '#F0E8DD',
+    width: '100%',
+    height: '100%',
+  },
+  cardImagePlaceholder: {
+    backgroundColor: '#F5EDE4',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  cardImageEmoji: {
-    fontSize: 48,
   },
   distanceBadge: {
     position: 'absolute',
@@ -334,11 +284,11 @@ const styles = StyleSheet.create({
     right: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: 'rgba(255,253,240,0.92)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    gap: 3,
+    gap: 4,
   },
   distanceText: {
     fontSize: 11,
@@ -346,24 +296,29 @@ const styles = StyleSheet.create({
     color: '#6F4E37',
   },
   cardContent: {
-    padding: 16,
+    padding: 14,
   },
   cardName: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#2C1810',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3C2415',
     marginBottom: 6,
   },
   cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 6,
+    gap: 6,
+    marginBottom: 8,
   },
   cardAddress: {
     fontSize: 13,
     color: '#8B7355',
     flex: 1,
+  },
+  cardBottom: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   starRow: {
     flexDirection: 'row',
@@ -372,25 +327,53 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 12,
-    color: '#8B7355',
+    fontWeight: '600',
+    color: '#D4A574',
     marginLeft: 4,
   },
-  emptyContainer: {
+  phoneRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 60,
+    gap: 4,
+    flex: 1,
+    marginLeft: 8,
   },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: 16,
+  phoneText: {
+    fontSize: 12,
+    color: '#8B7355',
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 15,
+    color: '#8B7355',
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 15,
+    color: '#8B7355',
+    textAlign: 'center',
+  },
+  retryBtn: {
+    marginTop: 20,
+    backgroundColor: '#6F4E37',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  retryText: {
+    color: '#FFFDF9',
+    fontSize: 14,
+    fontWeight: '600',
   },
   emptyText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#2C1810',
-  },
-  emptySubtext: {
-    fontSize: 14,
+    marginTop: 16,
+    fontSize: 15,
     color: '#8B7355',
-    marginTop: 4,
   },
 });

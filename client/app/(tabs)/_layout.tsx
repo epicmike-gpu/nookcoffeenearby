@@ -29,7 +29,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '探索',
+          title: 'Explore',
           tabBarIcon: ({ color }) => (
             <Feather name="compass" size={22} color={color} />
           ),
@@ -38,7 +38,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="wishlist"
         options={{
-          title: '想去',
+          title: 'Wishlist',
           tabBarIcon: ({ color }) => (
             <Feather name="heart" size={22} color={color} />
           ),
@@ -47,7 +47,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="checkin"
         options={{
-          title: '打卡',
+          title: 'Check-ins',
           tabBarIcon: ({ color }) => (
             <Feather name="map-pin" size={22} color={color} />
           ),
@@ -56,7 +56,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: '我的',
+          title: 'Profile',
           tabBarIcon: ({ color }) => (
             <Feather name="user" size={22} color={color} />
           ),

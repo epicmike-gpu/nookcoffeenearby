@@ -4,9 +4,11 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
   StyleSheet,
+  Image,
   Alert,
-  Platform,
 } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useUser } from '@/contexts/UserContext';
@@ -24,115 +26,84 @@ interface WishlistItem {
   shop_latitude: number;
   shop_longitude: number;
   shop_poi_id: string;
-  note: string | null;
+  shop_photos: string;
+  note: string;
   created_at: string;
 }
 
-function WishlistCard({ item, onRemove }: { item: WishlistItem; onRemove: (id: string) => void }) {
-  const router = useSafeRouter();
-
-  const handlePress = () => {
-    router.push('/detail', {
-      poi_id: item.shop_poi_id || '',
-      name: item.shop_name,
-      address: item.shop_address,
-      phone: item.shop_phone || '',
-      rating: (item.shop_rating || 0).toString(),
-      latitude: item.shop_latitude.toString(),
-      longitude: item.shop_longitude.toString(),
-      distance: '',
-      image: '',
-      wishlist_id: item.id,
-    });
-  };
-
-  const handleRemove = () => {
-    Alert.alert('取消想去', `确定要将「${item.shop_name}」从想去列表中移除吗？`, [
-      { text: '取消', style: 'cancel' },
-      { text: '移除', style: 'destructive', onPress: () => onRemove(item.id) },
-    ]);
-  };
-
+function StarRating({ rating }: { rating: number }) {
+  const fullStars = Math.floor(rating);
   return (
-    <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.8}>
-      <View style={styles.cardLeft}>
-        <View style={styles.iconContainer}>
-          <Feather name="heart" size={20} color="#6F4E37" />
-        </View>
-      </View>
-      <View style={styles.cardContent}>
-        <Text style={styles.cardName} numberOfLines={1}>{item.shop_name}</Text>
-        <View style={styles.cardRow}>
-          <Feather name="map-pin" size={12} color="#8B7355" />
-          <Text style={styles.cardAddress} numberOfLines={1}>{item.shop_address}</Text>
-        </View>
-        {item.note ? (
-          <View style={styles.noteRow}>
-            <Feather name="edit-3" size={11} color="#B8764E" />
-            <Text style={styles.noteText} numberOfLines={1}>{item.note}</Text>
-          </View>
-        ) : null}
-        <Text style={styles.dateText}>
-          {new Date(item.created_at).toLocaleDateString('zh-CN')}
-        </Text>
-      </View>
-      <TouchableOpacity style={styles.removeBtn} onPress={handleRemove} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Feather name="x" size={18} color="#C4B8A8" />
-      </TouchableOpacity>
-    </TouchableOpacity>
+    <View style={styles.starRow}>
+      {[...Array(5)].map((_, i) => (
+        <Feather key={i} name="star" size={12} color={i < fullStars ? '#D4A574' : '#E0D5C8'} />
+      ))}
+      <Text style={styles.ratingText}>{rating > 0 ? rating.toFixed(1) : 'N/A'}</Text>
+    </View>
   );
 }
 
 export default function WishlistScreen() {
   const { user } = useUser();
-  const [wishlists, setWishlists] = useState<WishlistItem[]>([]);
+  const router = useSafeRouter();
+  const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchWishlists = useCallback(async () => {
+  const fetchWishlist = useCallback(async () => {
     if (!user) return;
     try {
-      /**
-       * 服务端文件：server/src/index.ts
-       * 接口：GET /api/v1/wishlists/:userId
-       * Path 参数：userId: string
-       */
-      const response = await fetch(`${API_BASE_URL}/wishlists/${user.id}`);
-      if (!response.ok) throw new Error('Failed to fetch wishlists');
-      const data = await response.json();
-      setWishlists(data);
-    } catch (error) {
-      console.error('Failed to fetch wishlists:', error);
+      const res = await fetch(`${API_BASE_URL}/api/v1/wishlists/${user.id}`);
+      const data = await res.json();
+      setItems(data);
+    } catch {
+      // silent
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [user]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchWishlists();
-    }, [fetchWishlists])
+      fetchWishlist();
+    }, [fetchWishlist])
   );
 
-  const handleRemove = async (id: string) => {
-    try {
-      /**
-       * 服务端文件：server/src/index.ts
-       * 接口：DELETE /api/v1/wishlists/:id
-       * Path 参数：id: string
-       */
-      const response = await fetch(`${API_BASE_URL}/wishlists/${id}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Failed to remove');
-      setWishlists(prev => prev.filter(w => w.id !== id));
-    } catch (error) {
-      console.error('Failed to remove wishlist:', error);
-    }
+  const handleRemove = (id: string, name: string) => {
+    Alert.alert('Remove', `Remove "${name}" from wishlist?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          await fetch(`${API_BASE_URL}/api/v1/wishlists/${id}`, { method: 'DELETE' });
+          fetchWishlist();
+        },
+      },
+    ]);
+  };
+
+  const handleViewDetail = (item: WishlistItem) => {
+    const photos = item.shop_photos ? JSON.parse(item.shop_photos) : [];
+    router.push('/detail', {
+      poi_id: item.shop_poi_id,
+      name: item.shop_name,
+      address: item.shop_address,
+      phone: item.shop_phone,
+      rating: (item.shop_rating || 0).toString(),
+      latitude: item.shop_latitude.toString(),
+      longitude: item.shop_longitude.toString(),
+      distance: '',
+      photos: JSON.stringify(photos),
+    });
   };
 
   if (loading) {
     return (
       <Screen>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>加载中...</Text>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#6F4E37" />
         </View>
       </Screen>
     );
@@ -140,70 +111,169 @@ export default function WishlistScreen() {
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <Text style={styles.title}>想去清单</Text>
-        <Text style={styles.subtitle}>{wishlists.length} 家咖啡店等待探索</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Want to Go</Text>
+          <Text style={styles.headerSubtitle}>{items.length} places saved</Text>
+        </View>
+
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => {
+            const photos = item.shop_photos ? JSON.parse(item.shop_photos) : [];
+            const imageUrl = photos[0]?.url || '';
+            return (
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => handleViewDetail(item)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.cardLeft}>
+                  {imageUrl ? (
+                    <Image source={{ uri: imageUrl }} style={styles.cardImage} />
+                  ) : (
+                    <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
+                      <Feather name="coffee" size={24} color="#C4B8A8" />
+                    </View>
+                  )}
+                </View>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardName} numberOfLines={1}>{item.shop_name}</Text>
+                  <View style={styles.cardRow}>
+                    <Feather name="map-pin" size={12} color="#8B7355" />
+                    <Text style={styles.cardAddress} numberOfLines={1}>{item.shop_address}</Text>
+                  </View>
+                  <StarRating rating={item.shop_rating || 0} />
+                </View>
+                <TouchableOpacity
+                  style={styles.removeBtn}
+                  onPress={() => handleRemove(item.id, item.shop_name)}
+                >
+                  <Feather name="x" size={18} color="#C4B8A8" />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            );
+          }}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={fetchWishlist} tintColor="#6F4E37" />
+          }
+          ListEmptyComponent={
+            <View style={styles.center}>
+              <Feather name="heart" size={48} color="#C4B8A8" />
+              <Text style={styles.emptyText}>No places saved yet</Text>
+              <Text style={styles.emptySubtext}>Tap "Want to Go" on a coffee shop to save it</Text>
+            </View>
+          }
+        />
       </View>
-      <FlatList
-        data={wishlists}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <WishlistCard item={item} onRemove={handleRemove} />}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Feather name="heart" size={48} color="#C4B8A8" />
-            <Text style={styles.emptyText}>还没有想去的咖啡店</Text>
-            <Text style={styles.emptySubtext}>去探索页面发现身边的好咖啡吧</Text>
-          </View>
-        }
-      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 15, color: '#8B7355' },
+  container: { flex: 1 },
   header: {
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'web' ? 20 : 60,
-    paddingBottom: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
-  title: { fontSize: 28, fontWeight: '700', color: '#2C1810' },
-  subtitle: { fontSize: 14, color: '#8B7355', marginTop: 4 },
-  listContent: { paddingHorizontal: 20, paddingBottom: 100 },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#3C2415',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#8B7355',
+    marginTop: 2,
+  },
+  list: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
   card: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
+    backgroundColor: '#FFFDF9',
+    borderRadius: 16,
     marginBottom: 12,
+    padding: 12,
+    alignItems: 'center',
     shadowColor: '#6F4E37',
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
-    shadowRadius: 10,
+    shadowRadius: 6,
     elevation: 2,
-    alignItems: 'center',
   },
-  cardLeft: { marginRight: 14 },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(111,78,55,0.08)',
-    alignItems: 'center',
+  cardLeft: {
+    marginRight: 12,
+  },
+  cardImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+  },
+  cardImagePlaceholder: {
+    backgroundColor: '#F5EDE4',
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  cardContent: { flex: 1 },
-  cardName: { fontSize: 16, fontWeight: '700', color: '#2C1810', marginBottom: 4 },
-  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
-  cardAddress: { fontSize: 13, color: '#8B7355', flex: 1 },
-  noteRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
-  noteText: { fontSize: 12, color: '#B8764E', flex: 1 },
-  dateText: { fontSize: 11, color: '#C4B8A8' },
-  removeBtn: { padding: 6 },
-  emptyContainer: { alignItems: 'center', paddingTop: 80 },
-  emptyEmoji: { fontSize: 48, marginBottom: 16 },
-  emptyText: { fontSize: 17, fontWeight: '600', color: '#2C1810' },
-  emptySubtext: { fontSize: 14, color: '#8B7355', marginTop: 4 },
+  cardContent: {
+    flex: 1,
+  },
+  cardName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#3C2415',
+    marginBottom: 4,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  cardAddress: {
+    fontSize: 12,
+    color: '#8B7355',
+    flex: 1,
+  },
+  starRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  ratingText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#D4A574',
+    marginLeft: 4,
+  },
+  removeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F5EDE4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#8B7355',
+  },
+  emptySubtext: {
+    marginTop: 8,
+    fontSize: 13,
+    color: '#C4B8A8',
+    textAlign: 'center',
+  },
 });
