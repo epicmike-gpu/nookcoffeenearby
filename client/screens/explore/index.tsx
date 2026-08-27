@@ -69,33 +69,28 @@ function ShopCard({ shop }: { shop: Shop }) {
 
   return (
     <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.8}>
-      <View style={styles.cardImageContainer}>
+      <View style={styles.cardThumbWrap}>
         {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.cardImage} />
+          <Image source={{ uri: imageUrl }} style={styles.cardThumb} />
         ) : (
-          <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
-            <Feather name="coffee" size={48} color="#C4B8A8" />
+          <View style={[styles.cardThumb, styles.cardThumbPlaceholder]}>
+            <Feather name="coffee" size={28} color="#C4B8A8" />
           </View>
         )}
         <View style={styles.distanceBadge}>
-          <Feather name="navigation" size={10} color="#6F4E37" />
+          <Feather name="navigation" size={9} color="#6F4E37" />
           <Text style={styles.distanceText}>{shop.distance}m</Text>
         </View>
       </View>
       <View style={styles.cardContent}>
-        <Text style={styles.cardName} numberOfLines={1}>{shop.name}</Text>
+        <View style={styles.cardNameRow}>
+          <Text style={styles.cardName} numberOfLines={1}>{shop.name}</Text>
+          {shop.phone ? <Feather name="phone" size={14} color="#B3A18C" /> : null}
+        </View>
+        <StarRating rating={shop.rating} />
         <View style={styles.cardRow}>
           <Feather name="map-pin" size={12} color="#8B7355" />
-          <Text style={styles.cardAddress} numberOfLines={1}>{shop.address}</Text>
-        </View>
-        <View style={styles.cardBottom}>
-          <StarRating rating={shop.rating} />
-          {shop.phone ? (
-            <View style={styles.phoneRow}>
-              <Feather name="phone" size={12} color="#8B7355" />
-              <Text style={styles.phoneText} numberOfLines={1}>{shop.phone}</Text>
-            </View>
-          ) : null}
+          <Text style={styles.cardAddress} numberOfLines={2}>{shop.address}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -291,68 +286,75 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFDF9',
     borderRadius: 16,
-    marginBottom: 14,
-    overflow: 'hidden',
+    marginBottom: 12,
+    flexDirection: 'row',
+    padding: 12,
+    gap: 12,
     shadowColor: '#6F4E37',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
   },
-  cardImageContainer: {
+  cardThumbWrap: {
     position: 'relative',
-    height: 160,
+    width: 96,
+    height: 96,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
-  cardImage: {
+  cardThumb: {
     width: '100%',
     height: '100%',
   },
-  cardImagePlaceholder: {
+  cardThumbPlaceholder: {
     backgroundColor: '#F5EDE4',
     justifyContent: 'center',
     alignItems: 'center',
   },
   distanceBadge: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    bottom: 6,
+    left: 6,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,253,240,0.92)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 3,
   },
   distanceText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     color: '#6F4E37',
   },
   cardContent: {
-    padding: 14,
+    flex: 1,
+    justifyContent: 'center',
+    gap: 6,
+  },
+  cardNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   cardName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#3C2415',
-    marginBottom: 6,
+    flex: 1,
   },
   cardRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 6,
-    marginBottom: 8,
   },
   cardAddress: {
     fontSize: 13,
     color: '#8B7355',
     flex: 1,
-  },
-  cardBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    lineHeight: 18,
   },
   starRow: {
     flexDirection: 'row',
@@ -364,17 +366,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#D4A574',
     marginLeft: 4,
-  },
-  phoneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flex: 1,
-    marginLeft: 8,
-  },
-  phoneText: {
-    fontSize: 12,
-    color: '#8B7355',
   },
   center: {
     flex: 1,

@@ -90,17 +90,23 @@ export default function CheckinScreen() {
                 </View>
                 <View style={styles.timelineContent}>
                   <View style={styles.card}>
-                    {imageUrl ? (
-                      <Image source={{ uri: imageUrl }} style={styles.cardImage} />
-                    ) : null}
+                    <View style={styles.cardThumbWrap}>
+                      {imageUrl ? (
+                        <Image source={{ uri: imageUrl }} style={styles.cardThumb} />
+                      ) : (
+                        <View style={[styles.cardThumb, styles.cardThumbPlaceholder]}>
+                          <Feather name="coffee" size={24} color="#C4B8A8" />
+                        </View>
+                      )}
+                    </View>
                     <View style={styles.cardBody}>
                       <Text style={styles.cardName} numberOfLines={1}>{item.shop_name}</Text>
                       <View style={styles.cardRow}>
                         <Feather name="map-pin" size={12} color="#8B7355" />
-                        <Text style={styles.cardAddress} numberOfLines={1}>{item.shop_address}</Text>
+                        <Text style={styles.cardAddress} numberOfLines={2}>{item.shop_address}</Text>
                       </View>
                       {item.note ? (
-                        <Text style={styles.note}>"{item.note}"</Text>
+                        <Text style={styles.note} numberOfLines={2}>"{item.note}"</Text>
                       ) : null}
                       <Text style={styles.date}>{formatDate(item.created_at)}</Text>
                     </View>
@@ -163,42 +169,55 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFDF9',
     borderRadius: 16,
     marginBottom: 12,
-    overflow: 'hidden',
+    flexDirection: 'row',
+    padding: 12,
+    gap: 12,
     shadowColor: '#6F4E37',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 2,
   },
-  cardImage: {
+  cardThumbWrap: {
+    width: 84,
+    height: 84,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  cardThumb: {
     width: '100%',
-    height: 140,
+    height: '100%',
+  },
+  cardThumbPlaceholder: {
+    backgroundColor: '#F5EDE4',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cardBody: {
-    padding: 14,
+    flex: 1,
+    justifyContent: 'center',
+    gap: 4,
   },
   cardName: {
     fontSize: 15,
     fontWeight: '600',
     color: '#3C2415',
-    marginBottom: 4,
   },
   cardRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 4,
-    marginBottom: 6,
   },
   cardAddress: {
     fontSize: 12,
     color: '#8B7355',
     flex: 1,
+    lineHeight: 16,
   },
   note: {
     fontSize: 13,
     color: '#5C4033',
     fontStyle: 'italic',
-    marginBottom: 6,
     lineHeight: 18,
   },
   date: {
