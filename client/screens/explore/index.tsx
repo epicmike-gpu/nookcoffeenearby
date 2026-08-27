@@ -15,6 +15,7 @@ import MapPicker, { MapTarget } from '@/components/MapPicker';
 import { useUser } from '@/contexts/UserContext';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { API_BASE_URL } from '@/utils/api';
+import { formatDistance } from '@/utils';
 import * as Location from 'expo-location';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
@@ -87,7 +88,7 @@ function ShopCard({ shop }: { shop: Shop }) {
         )}
         <View style={styles.distanceBadge}>
           <Feather name="navigation" size={9} color="#6F4E37" />
-          <Text style={styles.distanceText}>{shop.distance}m</Text>
+          <Text style={styles.distanceText}>{formatDistance(shop.distance)}</Text>
         </View>
       </View>
       <View style={styles.cardContent}>

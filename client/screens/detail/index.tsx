@@ -16,6 +16,7 @@ import MapPicker, { MapTarget } from '@/components/MapPicker';
 import { useUser } from '@/contexts/UserContext';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { API_BASE_URL } from '@/utils/api';
+import { formatDistance } from '@/utils';
 import { Feather } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -181,7 +182,7 @@ export default function DetailScreen() {
           {params.distance ? (
             <View style={styles.infoRow}>
               <Feather name="navigation" size={16} color="#8B7355" />
-              <Text style={styles.infoText}>{params.distance}m away</Text>
+              <Text style={styles.infoText}>{params.distance ? `${formatDistance(params.distance)} away` : ''}</Text>
             </View>
           ) : null}
         </View>

@@ -3,6 +3,19 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 
+/**
+ * 格式化距离显示：超过 1000m 用 km 表示（保留 1 位小数）
+ * @param distance 距离（字符串或数字，单位：米）
+ */
+export function formatDistance(distance: string | number): string {
+  const d = typeof distance === 'number' ? distance : parseFloat(distance);
+  if (!Number.isFinite(d) || d < 0) return '';
+  if (d >= 1000) {
+    return `${(d / 1000).toFixed(1)}km`;
+  }
+  return `${Math.round(d)}m`;
+}
+
 const API_BASE = (process.env.EXPO_PUBLIC_API_BASE ?? '').replace(/\/$/, '');
 
 /**
