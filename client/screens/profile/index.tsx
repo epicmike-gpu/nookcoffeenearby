@@ -31,7 +31,7 @@ export default function ProfileScreen() {
   const fetchStats = async () => {
     if (!user) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/users/stats/${user.id}`);
+      const res = await fetch(`${API_BASE_URL}/users/stats/${user.id}`);
       const data = await res.json();
       setStats(data);
     } catch {
@@ -42,7 +42,7 @@ export default function ProfileScreen() {
   const handleSave = async () => {
     if (!user || !nickname.trim()) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/users`, {
+      const res = await fetch(`${API_BASE_URL}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ device_id: user.device_id, nickname: nickname.trim() }),

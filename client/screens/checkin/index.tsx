@@ -42,7 +42,7 @@ export default function CheckinScreen() {
   const fetchCheckins = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/checkins/${user.id}`);
+      const res = await fetch(`${API_BASE_URL}/checkins/${user.id}`);
       const data = await res.json();
       setItems(data);
     } catch {

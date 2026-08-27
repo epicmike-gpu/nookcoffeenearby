@@ -45,7 +45,7 @@ export default function DetailScreen() {
   const handleWishlist = async () => {
     if (!user) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/wishlists`, {
+      const res = await fetch(`${API_BASE_URL}/wishlists`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -74,7 +74,7 @@ export default function DetailScreen() {
     if (!user) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/checkins`, {
+      const res = await fetch(`${API_BASE_URL}/checkins`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

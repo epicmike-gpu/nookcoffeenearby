@@ -114,7 +114,7 @@ export default function ExploreScreen() {
   const fetchShops = useCallback(async (lat: number, lng: number) => {
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/v1/shops/nearby?latitude=${lat}&longitude=${lng}&radius=3000&keywords=%E5%92%96%E5%95%A1`
+        `${API_BASE_URL}/shops/nearby?latitude=${lat}&longitude=${lng}&radius=3000&keywords=%E5%92%96%E5%95%A1`
       );
       const data = await res.json();
       setShops(data);

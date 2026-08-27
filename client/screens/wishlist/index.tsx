@@ -53,7 +53,7 @@ export default function WishlistScreen() {
   const fetchWishlist = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/wishlists/${user.id}`);
+      const res = await fetch(`${API_BASE_URL}/wishlists/${user.id}`);
       const data = await res.json();
       setItems(data);
     } catch {
@@ -77,7 +77,7 @@ export default function WishlistScreen() {
         text: 'Remove',
         style: 'destructive',
         onPress: async () => {
-          await fetch(`${API_BASE_URL}/api/v1/wishlists/${id}`, { method: 'DELETE' });
+          await fetch(`${API_BASE_URL}/wishlists/${id}`, { method: 'DELETE' });
           fetchWishlist();
         },
       },
