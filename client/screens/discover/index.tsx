@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,15 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { API_BASE_URL } from '@/utils/api';
 import MapPicker, { MapTarget } from '@/components/MapPicker';
+
+const HISTORY_STORAGE_KEY = '@discover_search_history';
+const MAX_HISTORY_ITEMS = 10;
 
 interface Shop {
   poi_id: string;
@@ -97,18 +101,34 @@ export default function DiscoverScreen() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState('');
+  const [history, setHistory] = useState<string[]>([]);
 
-  /**
-   * 服务端文件：server/src/index.ts
-   * 接口：GET /api/v1/shops/search
-   * Query 参数：keyword: string（店铺名，如 "Fuglen Tokyo"）
-   */
-  const handleSearch = useCallback(async () => {
-    const q = keyword.trim();
+  // Load persisted search history on mount
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(HISTORY_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) setHistory(parsed.filter((h) => typeof h === 'string'));
+        }
+      } catch {
+        // Keep empty history on read failure
+      }
+    };
+    load();
+  }, []);
+
+  const runSearch = useCallback(async (q: string) => {
     if (!q) return;
     setLoading(true);
     setError('');
     try {
+      /**
+       * 服务端文件：server/src/index.ts
+       * 接口：GET /api/v1/shops/search
+       * Query 参数：keyword: string（店铺名，如 "Fuglen Tokyo"）
+       */
       const res = await fetch(
         `${API_BASE_URL}/shops/search?keyword=${encodeURIComponent(q)}`
       );
@@ -121,7 +141,50 @@ export default function DiscoverScreen() {
     } finally {
       setLoading(false);
     }
-  }, [keyword]);
+  }, []);
+
+  const persistHistory = useCallback(async (q: string) => {
+    try {
+      const raw = await AsyncStorage.getItem(HISTORY_STORAGE_KEY);
+      const prev: string[] = raw ? JSON.parse(raw) : [];
+      const next = [q, ...prev.filter((h) => h !== q)].slice(0, MAX_HISTORY_ITEMS);
+      await AsyncStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(next));
+      setHistory(next);
+    } catch {
+      // History persistence is best-effort
+    }
+  }, []);
+
+  const handleSearch = useCallback(() => {
+    const q = keyword.trim();
+    if (!q) return;
+    persistHistory(q);
+    runSearch(q);
+  }, [keyword, persistHistory, runSearch]);
+
+  const handleHistoryPress = useCallback((q: string) => {
+    setKeyword(q);
+    runSearch(q);
+  }, [runSearch]);
+
+  const removeHistoryItem = useCallback(async (q: string) => {
+    try {
+      const next = history.filter((h) => h !== q);
+      await AsyncStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(next));
+      setHistory(next);
+    } catch {
+      // Ignore removal failure
+    }
+  }, [history]);
+
+  const clearHistory = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(HISTORY_STORAGE_KEY);
+      setHistory([]);
+    } catch {
+      // Ignore clear failure
+    }
+  }, []);
 
   return (
     <Screen>
@@ -167,6 +230,39 @@ export default function DiscoverScreen() {
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        {/* Search History (shown before any search) */}
+        {!searched && history.length > 0 ? (
+          <View style={styles.historySection}>
+            <View style={styles.historyHeader}>
+              <Text style={styles.historyTitle}>Recent Searches</Text>
+              <TouchableOpacity onPress={clearHistory} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.historyClear}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.historyChips}>
+              {history.map((item) => (
+                <View key={item} style={styles.historyChip}>
+                  <TouchableOpacity
+                    style={styles.historyChipBtn}
+                    onPress={() => handleHistoryPress(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="clock" size={12} color="#9CA3AF" />
+                    <Text style={styles.historyChipText} numberOfLines={1}>{item}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.historyChipRemove}
+                    onPress={() => removeHistoryItem(item)}
+                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+                  >
+                    <Feather name="x" size={12} color="#D1D5DB" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         <FlatList
           data={results}
@@ -264,6 +360,54 @@ const styles = StyleSheet.create({
     fontSize: 13,
     paddingHorizontal: 16,
     marginBottom: 8,
+  },
+  historySection: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  historyTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  historyClear: {
+    fontSize: 13,
+    color: '#9CA3AF',
+  },
+  historyChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  historyChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    paddingLeft: 10,
+    paddingRight: 6,
+    paddingVertical: 7,
+  },
+  historyChipBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: 180,
+  },
+  historyChipText: {
+    fontSize: 13,
+    color: '#111111',
+  },
+  historyChipRemove: {
+    paddingLeft: 6,
   },
   list: {
     paddingHorizontal: 16,
