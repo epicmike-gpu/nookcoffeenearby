@@ -1,16 +1,15 @@
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
 export default function TabLayout() {
   const tabBarStyle = {
     backgroundColor: '#FAFAFA',
     borderTopWidth: 0,
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: -2 } as { width: number; height: number },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 } as { width: number; height: number },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   };
 
   return (
