@@ -98,7 +98,7 @@ function MapOptionButton({
         <Text style={styles.optionLabel}>{label}</Text>
         <Text style={styles.optionDesc}>{description}</Text>
       </View>
-      <Feather name="chevron-right" size={18} color="#FDBA74" />
+      <Feather name="chevron-right" size={18} color="#D1D5DB" />
     </TouchableOpacity>
   );
 }
@@ -175,18 +175,18 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#7C2D12',
+    color: '#111111',
   },
   sheetSubtitle: {
     fontSize: 13,
-    color: '#C2410C',
+    color: '#6B7280',
     marginTop: 4,
     maxWidth: '80%',
   },
   optionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF8F0',
+    backgroundColor: '#FAFAFA',
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
@@ -205,11 +205,11 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#7C2D12',
+    color: '#111111',
   },
   optionDesc: {
     fontSize: 12,
-    color: '#C2410C',
+    color: '#6B7280',
     marginTop: 2,
   },
   cancelBtn: {
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 15,
-    color: '#C2410C',
+    color: '#6B7280',
     fontWeight: '500',
   },
 });

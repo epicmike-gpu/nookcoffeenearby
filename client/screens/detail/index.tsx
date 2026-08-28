@@ -129,7 +129,7 @@ export default function DetailScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* Back Button */}
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={22} color="#7C2D12" />
+          <Feather name="arrow-left" size={22} color="#111111" />
         </TouchableOpacity>
 
         {/* Image Gallery */}
@@ -145,7 +145,7 @@ export default function DetailScreen() {
           </ScrollView>
         ) : (
           <View style={styles.noImage}>
-            <Feather name="coffee" size={64} color="#FDBA74" />
+            <Feather name="coffee" size={64} color="#D1D5DB" />
           </View>
         )}
 
@@ -160,36 +160,36 @@ export default function DetailScreen() {
                   key={i}
                   name="star"
                   size={16}
-                  color={i < Math.floor(rating) ? '#F59E0B' : '#FDE68A'}
+                  color={i < Math.floor(rating) ? '#D4B464' : '#E5E7EB'}
                 />
               ))}
             </View>
             <Text style={styles.ratingNum}>{rating > 0 ? rating.toFixed(1) : 'N/A'}</Text>
             {cost != null ? (
               <View style={styles.costBadge}>
-                <Feather name="dollar-sign" size={11} color="#F97316" />
+                <Feather name="dollar-sign" size={11} color="#111111" />
                 <Text style={styles.costText}>{cost}/person</Text>
               </View>
             ) : null}
           </View>
 
           <TouchableOpacity style={styles.infoRow} onPress={() => setMapPickerVisible(true)} activeOpacity={0.6}>
-            <Feather name="map-pin" size={16} color="#C2410C" />
+            <Feather name="map-pin" size={16} color="#6B7280" />
             <Text style={styles.infoText}>{params.address}</Text>
-            <Feather name="navigation" size={14} color="#F97316" />
+            <Feather name="navigation" size={14} color="#111111" />
           </TouchableOpacity>
 
           {params.phone ? (
             <TouchableOpacity style={styles.infoRow} onPress={handleCall} activeOpacity={0.6}>
-              <Feather name="phone" size={16} color="#C2410C" />
+              <Feather name="phone" size={16} color="#6B7280" />
               <Text style={styles.infoText}>{params.phone}</Text>
-              <Feather name="phone-call" size={14} color="#F97316" />
+              <Feather name="phone-call" size={14} color="#111111" />
             </TouchableOpacity>
           ) : null}
 
           {params.distance ? (
             <View style={styles.infoRow}>
-              <Feather name="navigation" size={16} color="#C2410C" />
+              <Feather name="navigation" size={16} color="#6B7280" />
               <Text style={styles.infoText}>{params.distance ? `${formatDistance(params.distance)} away` : ''}</Text>
             </View>
           ) : null}
@@ -198,7 +198,7 @@ export default function DetailScreen() {
         {/* Action Buttons */}
         <View style={styles.actions}>
           <TouchableOpacity style={styles.wishlistBtn} onPress={handleWishlist}>
-            <Feather name="heart" size={20} color="#F97316" />
+            <Feather name="heart" size={20} color="#111111" />
             <Text style={styles.wishlistText}>Want to Go</Text>
           </TouchableOpacity>
 
@@ -222,7 +222,7 @@ export default function DetailScreen() {
                   <Ionicons
                     name="star"
                     size={28}
-                    color={star <= checkinRating ? '#F59E0B' : '#FDE68A'}
+                    color={star <= checkinRating ? '#D4B464' : '#E5E7EB'}
                   />
                 </TouchableOpacity>
               ))}
@@ -231,7 +231,7 @@ export default function DetailScreen() {
             <TextInput
               style={styles.noteInput}
               placeholder="Leave a review..."
-              placeholderTextColor="#FDBA74"
+              placeholderTextColor="#D1D5DB"
               value={checkinNote}
               onChangeText={setCheckinNote}
               multiline
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
   noImage: {
     height: 200,
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#F97316',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#F3F4F6',
     borderRadius: 10,
     paddingHorizontal: 9,
     paddingVertical: 4,
@@ -313,12 +313,12 @@ const styles = StyleSheet.create({
   costText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F97316',
+    color: '#111111',
   },
   shopName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#7C2D12',
+    color: '#111111',
     marginBottom: 10,
   },
   ratingRow: {
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   ratingNum: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: '#D4B464',
     marginLeft: 6,
   },
   infoRow: {
@@ -341,14 +341,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     marginBottom: 10,
-    backgroundColor: '#FFF8F0',
+    backgroundColor: '#FAFAFA',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
   infoText: {
     fontSize: 14,
-    color: '#9A3412',
+    color: '#374151',
     flex: 1,
     lineHeight: 20,
   },
@@ -364,14 +364,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#F3F4F6',
     paddingVertical: 14,
     borderRadius: 14,
   },
   wishlistText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#F97316',
+    color: '#111111',
   },
   checkinBtn: {
     flex: 1,
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#F97316',
+    backgroundColor: '#111111',
     paddingVertical: 14,
     borderRadius: 14,
   },
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#F97316',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#7C2D12',
+    color: '#111111',
     marginBottom: 14,
   },
   ratingSelector: {
@@ -412,17 +412,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   noteInput: {
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#F3F4F6',
     borderRadius: 12,
     padding: 14,
     fontSize: 14,
-    color: '#7C2D12',
+    color: '#111111',
     minHeight: 80,
     textAlignVertical: 'top',
     marginBottom: 14,
   },
   submitBtn: {
-    backgroundColor: '#F97316',
+    backgroundColor: '#111111',
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',

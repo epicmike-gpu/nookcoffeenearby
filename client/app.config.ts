@@ -34,7 +34,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#FFF8F0"
+        "backgroundColor": "#FAFAFA"
       },
       "package": `com.coffeeshop.explorer`,
       "permissions": [
@@ -63,7 +63,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#FFF8F0"
+          "backgroundColor": "#FAFAFA"
         }
       ],
       [

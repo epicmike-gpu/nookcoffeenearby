@@ -4,9 +4,9 @@ import { Feather } from '@expo/vector-icons';
 
 export default function TabLayout() {
   const tabBarStyle = {
-    backgroundColor: '#FFF8F0',
+    backgroundColor: '#FAFAFA',
     borderTopWidth: 0,
-    shadowColor: '#F97316',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: -2 } as { width: number; height: number },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -18,8 +18,8 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle,
-        tabBarActiveTintColor: '#F97316',
-        tabBarInactiveTintColor: '#FDBA74',
+        tabBarActiveTintColor: '#111111',
+        tabBarInactiveTintColor: '#D1D5DB',
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600' as const,

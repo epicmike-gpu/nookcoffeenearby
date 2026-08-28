@@ -46,7 +46,7 @@ function StarRating({ rating }: { rating: number }) {
           key={i}
           name="star"
           size={12}
-          color={i < fullStars ? '#F59E0B' : i === fullStars && hasHalf ? '#F59E0B' : '#FDE68A'}
+          color={i < fullStars ? '#D4B464' : i === fullStars && hasHalf ? '#D4B464' : '#E5E7EB'}
         />
       ))}
       <Text style={styles.ratingText}>{rating > 0 ? rating.toFixed(1) : 'N/A'}</Text>
@@ -87,32 +87,32 @@ function ShopCard({ shop }: { shop: Shop }) {
           <Image source={{ uri: imageUrl }} style={styles.cardThumb} />
         ) : (
           <View style={[styles.cardThumb, styles.cardThumbPlaceholder]}>
-            <Feather name="coffee" size={28} color="#FDBA74" />
+            <Feather name="coffee" size={28} color="#D1D5DB" />
           </View>
         )}
         <View style={styles.distanceBadge}>
-          <Feather name="navigation" size={9} color="#F97316" />
+          <Feather name="navigation" size={9} color="#111111" />
           <Text style={styles.distanceText}>{formatDistance(shop.distance)}</Text>
         </View>
       </View>
       <View style={styles.cardContent}>
         <View style={styles.cardNameRow}>
           <Text style={styles.cardName} numberOfLines={1}>{shop.name}</Text>
-          {shop.phone ? <Feather name="phone" size={14} color="#FB923C" /> : null}
+          {shop.phone ? <Feather name="phone" size={14} color="#9CA3AF" /> : null}
         </View>
         <View style={styles.ratingRow}>
           <StarRating rating={shop.rating} />
           {shop.cost != null ? (
             <View style={styles.costBadge}>
-              <Feather name="dollar-sign" size={10} color="#F97316" />
+              <Feather name="dollar-sign" size={10} color="#111111" />
               <Text style={styles.costText}>{shop.cost}/person</Text>
             </View>
           ) : null}
         </View>
         <TouchableOpacity style={styles.cardRow} onPress={() => setMapPickerVisible(true)} activeOpacity={0.6}>
-          <Feather name="map-pin" size={12} color="#C2410C" />
+          <Feather name="map-pin" size={12} color="#6B7280" />
           <Text style={styles.cardAddress} numberOfLines={1} ellipsizeMode="tail">{shop.address}</Text>
-          <Feather name="navigation" size={11} color="#F97316" />
+          <Feather name="navigation" size={11} color="#111111" />
         </TouchableOpacity>
       </View>
       <MapPicker
@@ -222,7 +222,7 @@ export default function ExploreScreen() {
     return (
       <Screen>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#F97316" />
+          <ActivityIndicator size="large" color="#111111" />
           <Text style={styles.loadingText}>Finding nearby coffee shops...</Text>
         </View>
       </Screen>
@@ -233,16 +233,16 @@ export default function ExploreScreen() {
     return (
       <Screen>
         <View style={styles.center}>
-          <Feather name="alert-circle" size={48} color="#FDBA74" />
+          <Feather name="alert-circle" size={48} color="#D1D5DB" />
           <Text style={styles.errorText}>{error}</Text>
           <Text style={styles.errorSubtext}>Enable location to find shops near you</Text>
           <View style={styles.errorBtnRow}>
             <TouchableOpacity style={styles.retryBtn} onPress={openSettings}>
-              <Feather name="settings" size={16} color="#F97316" />
+              <Feather name="settings" size={16} color="#111111" />
               <Text style={styles.retryText}>Open Settings</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.defaultBtn} onPress={useDefaultLocation}>
-              <Feather name="map-pin" size={16} color="#F97316" />
+              <Feather name="map-pin" size={16} color="#111111" />
               <Text style={styles.retryText}>Use Shanghai</Text>
             </TouchableOpacity>
           </View>
@@ -265,7 +265,7 @@ export default function ExploreScreen() {
             style={styles.planBtn}
             onPress={() => router.push('/detail', { page: 'travel' } as any)}
           >
-            <Feather name="map" size={18} color="#F97316" />
+            <Feather name="map" size={18} color="#111111" />
           </TouchableOpacity>
         </View>
 
@@ -274,14 +274,14 @@ export default function ExploreScreen() {
             style={[styles.tab, category === 'coffee' && styles.tabActive]}
             onPress={() => switchCategory('coffee')}
           >
-            <Feather name="coffee" size={16} color={category === 'coffee' ? '#FFF8F0' : '#F97316'} />
+            <Feather name="coffee" size={16} color={category === 'coffee' ? '#FAFAFA' : '#111111'} />
             <Text style={[styles.tabText, category === 'coffee' && styles.tabTextActive]}>Coffee</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, category === 'brunch' && styles.tabActive]}
             onPress={() => switchCategory('brunch')}
           >
-            <Feather name="sun" size={16} color={category === 'brunch' ? '#FFF8F0' : '#F97316'} />
+            <Feather name="sun" size={16} color={category === 'brunch' ? '#FAFAFA' : '#111111'} />
             <Text style={[styles.tabText, category === 'brunch' && styles.tabTextActive]}>Brunch</Text>
           </TouchableOpacity>
         </View>
@@ -310,11 +310,11 @@ export default function ExploreScreen() {
           renderItem={({ item }) => <ShopCard shop={item} />}
           contentContainerStyle={styles.list}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F97316" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#111111" />
           }
           ListEmptyComponent={
             <View style={styles.center}>
-              <Feather name="coffee" size={48} color="#FDBA74" />
+              <Feather name="coffee" size={48} color="#D1D5DB" />
               <Text style={styles.emptyText}>No coffee shops found nearby</Text>
             </View>
           }
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#7C2D12',
+    color: '#111111',
   },
   tabRow: {
     flexDirection: 'row',
@@ -355,19 +355,19 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#FED7AA',
+    borderColor: '#E5E7EB',
   },
   tabActive: {
-    backgroundColor: '#F97316',
-    borderColor: '#F97316',
+    backgroundColor: '#111111',
+    borderColor: '#111111',
   },
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#F97316',
+    color: '#111111',
   },
   tabTextActive: {
-    color: '#FFF8F0',
+    color: '#FAFAFA',
   },
   sortRow: {
     flexDirection: 'row',
@@ -379,18 +379,18 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 14,
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#F3F4F6',
   },
   sortChipActive: {
-    backgroundColor: '#FED7AA',
+    backgroundColor: '#E5E7EB',
   },
   sortChipText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#C2410C',
+    color: '#6B7280',
   },
   sortChipTextActive: {
-    color: '#7C2D12',
+    color: '#111111',
     fontWeight: '700',
   },
   ratingRow: {
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#F3F4F6',
     borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -410,18 +410,18 @@ const styles = StyleSheet.create({
   costText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#F97316',
+    color: '#111111',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#C2410C',
+    color: '#6B7280',
     marginTop: 2,
   },
   planBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 12,
     gap: 12,
-    shadowColor: '#F97316',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   cardThumbPlaceholder: {
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
   distanceText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#F97316',
+    color: '#111111',
   },
   cardContent: {
     flex: 1,
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
   cardName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#7C2D12',
+    color: '#111111',
     flex: 1,
   },
   cardRow: {
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
   },
   cardAddress: {
     fontSize: 13,
-    color: '#C2410C',
+    color: '#6B7280',
     flex: 1,
     lineHeight: 18,
   },
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: '#D4B464',
     marginLeft: 4,
   },
   center: {
@@ -522,18 +522,18 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 15,
-    color: '#C2410C',
+    color: '#6B7280',
   },
   errorText: {
     marginTop: 16,
     fontSize: 15,
-    color: '#C2410C',
+    color: '#6B7280',
     textAlign: 'center',
   },
   errorSubtext: {
     marginTop: 8,
     fontSize: 13,
-    color: '#FDBA74',
+    color: '#D1D5DB',
     textAlign: 'center',
   },
   errorBtnRow: {
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F97316',
+    backgroundColor: '#111111',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#F3F4F6',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 20,
@@ -567,6 +567,6 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 16,
     fontSize: 15,
-    color: '#C2410C',
+    color: '#6B7280',
   },
 });

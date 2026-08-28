@@ -76,7 +76,7 @@ export default function ProfileScreen() {
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>Profile</Text>
             <TouchableOpacity onPress={() => setEditing(!editing)}>
-              <Feather name={editing ? 'x' : 'edit-2'} size={18} color="#F97316" />
+              <Feather name={editing ? 'x' : 'edit-2'} size={18} color="#111111" />
             </TouchableOpacity>
           </View>
 
@@ -87,7 +87,7 @@ export default function ProfileScreen() {
                 value={nickname}
                 onChangeText={setNickname}
                 placeholder="Enter your nickname"
-                placeholderTextColor="#FDBA74"
+                placeholderTextColor="#D1D5DB"
               />
               <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
                 <Text style={styles.saveText}>Save</Text>
@@ -101,12 +101,12 @@ export default function ProfileScreen() {
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Feather name="heart" size={24} color="#F59E0B" />
+            <Feather name="heart" size={24} color="#D4B464" />
             <Text style={styles.statNum}>{stats.wishlist_count}</Text>
             <Text style={styles.statLabel}>Want to Go</Text>
           </View>
           <View style={styles.statCard}>
-            <Feather name="check-circle" size={24} color="#F97316" />
+            <Feather name="check-circle" size={24} color="#111111" />
             <Text style={styles.statNum}>{stats.checkin_count}</Text>
             <Text style={styles.statLabel}>Check-ins</Text>
           </View>
@@ -118,10 +118,10 @@ export default function ProfileScreen() {
           onPress={() => router.push('/detail', { page: 'travel' } as any)}
         >
           <View style={styles.menuIcon}>
-            <Feather name="map" size={20} color="#F97316" />
+            <Feather name="map" size={20} color="#111111" />
           </View>
           <Text style={styles.menuText}>Travel Plan</Text>
-          <Feather name="chevron-right" size={20} color="#FDBA74" />
+          <Feather name="chevron-right" size={20} color="#D1D5DB" />
         </TouchableOpacity>
 
         {/* About */}
@@ -148,14 +148,14 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F97316',
+    backgroundColor: '#111111',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
   deviceId: {
     fontSize: 12,
-    color: '#FDBA74',
+    color: '#D1D5DB',
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#F97316',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -178,23 +178,23 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#7C2D12',
+    color: '#111111',
   },
   nickname: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#7C2D12',
+    color: '#111111',
   },
   input: {
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#F3F4F6',
     borderRadius: 12,
     padding: 14,
     fontSize: 16,
-    color: '#7C2D12',
+    color: '#111111',
     marginBottom: 12,
   },
   saveBtn: {
-    backgroundColor: '#F97316',
+    backgroundColor: '#111111',
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
-    shadowColor: '#F97316',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -225,12 +225,12 @@ const styles = StyleSheet.create({
   statNum: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#7C2D12',
+    color: '#111111',
     marginTop: 8,
   },
   statLabel: {
     fontSize: 12,
-    color: '#C2410C',
+    color: '#6B7280',
     marginTop: 4,
   },
   menuItem: {
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#F97316',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -260,14 +260,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: '#7C2D12',
+    color: '#111111',
   },
   aboutCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#F97316',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -276,12 +276,12 @@ const styles = StyleSheet.create({
   aboutTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#7C2D12',
+    color: '#111111',
     marginBottom: 8,
   },
   aboutText: {
     fontSize: 13,
-    color: '#C2410C',
+    color: '#6B7280',
     lineHeight: 20,
   },
 });

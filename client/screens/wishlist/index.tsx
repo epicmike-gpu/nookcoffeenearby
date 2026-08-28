@@ -37,7 +37,7 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <View style={styles.starRow}>
       {[...Array(5)].map((_, i) => (
-        <Ionicons key={i} name="star" size={12} color={i < fullStars ? '#F59E0B' : '#FDE68A'} />
+        <Ionicons key={i} name="star" size={12} color={i < fullStars ? '#D4B464' : '#E5E7EB'} />
       ))}
       <Text style={styles.ratingText}>{rating > 0 ? rating.toFixed(1) : 'N/A'}</Text>
     </View>
@@ -70,16 +70,16 @@ function WishlistCard({
           <Image source={{ uri: imageUrl }} style={styles.cardImage} />
         ) : (
           <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
-            <Feather name="coffee" size={24} color="#FDBA74" />
+            <Feather name="coffee" size={24} color="#D1D5DB" />
           </View>
         )}
       </View>
       <View style={styles.cardContent}>
         <Text style={styles.cardName} numberOfLines={1}>{item.shop_name}</Text>
         <TouchableOpacity style={styles.cardRow} onPress={() => setMapPickerVisible(true)} activeOpacity={0.6}>
-          <Feather name="map-pin" size={12} color="#C2410C" />
+          <Feather name="map-pin" size={12} color="#6B7280" />
           <Text style={styles.cardAddress} numberOfLines={1} ellipsizeMode="tail">{item.shop_address}</Text>
-          <Feather name="navigation" size={11} color="#F97316" />
+          <Feather name="navigation" size={11} color="#111111" />
         </TouchableOpacity>
         <StarRating rating={item.shop_rating || 0} />
       </View>
@@ -87,7 +87,7 @@ function WishlistCard({
         style={styles.removeBtn}
         onPress={() => onRemove(item.id, item.shop_name)}
       >
-        <Feather name="x" size={18} color="#FDBA74" />
+        <Feather name="x" size={18} color="#D1D5DB" />
       </TouchableOpacity>
       <MapPicker
         visible={mapPickerVisible}
@@ -158,7 +158,7 @@ export default function WishlistScreen() {
     return (
       <Screen>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#F97316" />
+          <ActivityIndicator size="large" color="#111111" />
         </View>
       </Screen>
     );
@@ -180,11 +180,11 @@ export default function WishlistScreen() {
           )}
           contentContainerStyle={styles.list}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={fetchWishlist} tintColor="#F97316" />
+            <RefreshControl refreshing={refreshing} onRefresh={fetchWishlist} tintColor="#111111" />
           }
           ListEmptyComponent={
             <View style={styles.center}>
-              <Feather name="heart" size={48} color="#FDBA74" />
+              <Feather name="heart" size={48} color="#D1D5DB" />
               <Text style={styles.emptyText}>No places saved yet</Text>
               <Text style={styles.emptySubtext}>Tap &ldquo;Want to Go&rdquo; on a coffee shop to save it</Text>
             </View>
@@ -205,11 +205,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#7C2D12',
+    color: '#111111',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#C2410C',
+    color: '#6B7280',
     marginTop: 2,
   },
   list: {
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     padding: 12,
     alignItems: 'center',
-    shadowColor: '#F97316',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   cardImagePlaceholder: {
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   cardName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#7C2D12',
+    color: '#111111',
     marginBottom: 4,
   },
   cardRow: {
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   },
   cardAddress: {
     fontSize: 12,
-    color: '#C2410C',
+    color: '#6B7280',
     flex: 1,
   },
   starRow: {
@@ -270,14 +270,14 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: '#D4B464',
     marginLeft: 4,
   },
   removeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -291,12 +291,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     fontWeight: '600',
-    color: '#C2410C',
+    color: '#6B7280',
   },
   emptySubtext: {
     marginTop: 8,
     fontSize: 13,
-    color: '#FDBA74',
+    color: '#D1D5DB',
     textAlign: 'center',
   },
 });
