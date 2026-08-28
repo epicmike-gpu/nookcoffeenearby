@@ -143,7 +143,9 @@ const KeyboardAwareScrollable = ({
 
 const RawScreen = ({
   children,
-  backgroundColor = 'var(--background)',
+  // 显式色值而非 var(--background)：RN 原生端无法解析 CSS 变量，
+  // 会退化为透明白底，与 Tab 栏 #FAFAFA 之间产生灰色断层
+  backgroundColor = '#FAFAFA',
   statusBarStyle = 'dark',
   statusBarColor = 'transparent',
   safeAreaEdges = ['top', 'left', 'right', 'bottom'],
