@@ -210,7 +210,16 @@ export default function DiscoverScreen() {
               autoCorrect={false}
             />
             {keyword.length > 0 ? (
-              <TouchableOpacity onPress={() => setKeyword('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  // Reset to initial state: show history again, drop stale results
+                  setKeyword('');
+                  setResults([]);
+                  setSearched(false);
+                  setError('');
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
                 <Feather name="x-circle" size={16} color="#D1D5DB" />
               </TouchableOpacity>
             ) : null}
