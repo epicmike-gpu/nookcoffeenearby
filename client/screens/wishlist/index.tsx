@@ -15,7 +15,7 @@ import MapPicker, { MapTarget } from '@/components/MapPicker';
 import { useUser } from '@/contexts/UserContext';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { API_BASE_URL } from '@/utils/api';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 
 interface WishlistItem {
@@ -37,7 +37,7 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <View style={styles.starRow}>
       {[...Array(5)].map((_, i) => (
-        <Feather key={i} name="star" size={12} color={i < fullStars ? '#D4A574' : '#E0D5C8'} />
+        <Ionicons key={i} name="star" size={12} color={i < fullStars ? '#D4A574' : '#E0D5C8'} />
       ))}
       <Text style={styles.ratingText}>{rating > 0 ? rating.toFixed(1) : 'N/A'}</Text>
     </View>

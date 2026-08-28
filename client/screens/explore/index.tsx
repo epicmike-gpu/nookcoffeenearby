@@ -17,7 +17,7 @@ import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { API_BASE_URL } from '@/utils/api';
 import { formatDistance } from '@/utils';
 import * as Location from 'expo-location';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 
 interface Shop {
@@ -42,7 +42,7 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <View style={styles.starRow}>
       {[...Array(5)].map((_, i) => (
-        <Feather
+        <Ionicons
           key={i}
           name="star"
           size={12}

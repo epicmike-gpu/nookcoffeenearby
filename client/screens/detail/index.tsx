@@ -17,7 +17,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { API_BASE_URL } from '@/utils/api';
 import { formatDistance } from '@/utils';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -156,7 +156,7 @@ export default function DetailScreen() {
           <View style={styles.ratingRow}>
             <View style={styles.stars}>
               {[...Array(5)].map((_, i) => (
-                <Feather
+                <Ionicons
                   key={i}
                   name="star"
                   size={16}
@@ -219,7 +219,7 @@ export default function DetailScreen() {
             <View style={styles.ratingSelector}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <TouchableOpacity key={star} onPress={() => setCheckinRating(star)}>
-                  <Feather
+                  <Ionicons
                     name="star"
                     size={28}
                     color={star <= checkinRating ? '#D4A574' : '#E0D5C8'}
