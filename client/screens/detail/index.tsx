@@ -36,6 +36,7 @@ export default function DetailScreen() {
     distance: string;
     photos: string;
     page?: string;
+    source?: string;
   }>();
   const { user } = useUser();
 
@@ -49,6 +50,8 @@ export default function DetailScreen() {
   const photos: { title: string; url: string }[] = params.photos ? JSON.parse(params.photos) : [];
   const rating = parseFloat(params.rating || '0');
   const cost = params.cost ? parseInt(params.cost, 10) : null;
+  // Global search results (Discover tab) only support Want to Go — no check-in
+  const isDiscover = params.source === 'discover';
 
   const mapTarget: MapTarget = {
     name: params.name,
@@ -198,25 +201,27 @@ export default function DetailScreen() {
         <View style={styles.infoCard}>
           <Text style={styles.shopName}>{params.name}</Text>
 
-          <View style={styles.ratingRow}>
-            <View style={styles.stars}>
-              {[...Array(5)].map((_, i) => (
-                <Ionicons
-                  key={i}
-                  name="star"
-                  size={16}
-                  color={i < Math.floor(rating) ? '#D4B464' : '#E5E7EB'}
-                />
-              ))}
-            </View>
-            <Text style={styles.ratingNum}>{rating > 0 ? rating.toFixed(1) : 'N/A'}</Text>
-            {cost != null ? (
-              <View style={styles.costBadge}>
-                <Feather name="dollar-sign" size={11} color="#111111" />
-                <Text style={styles.costText}>{cost}/person</Text>
+          {rating > 0 || cost != null ? (
+            <View style={styles.ratingRow}>
+              <View style={styles.stars}>
+                {[...Array(5)].map((_, i) => (
+                  <Ionicons
+                    key={i}
+                    name="star"
+                    size={16}
+                    color={i < Math.floor(rating) ? '#D4B464' : '#E5E7EB'}
+                  />
+                ))}
               </View>
-            ) : null}
-          </View>
+              <Text style={styles.ratingNum}>{rating > 0 ? rating.toFixed(1) : 'N/A'}</Text>
+              {cost != null ? (
+                <View style={styles.costBadge}>
+                  <Feather name="dollar-sign" size={11} color="#111111" />
+                  <Text style={styles.costText}>{cost}/person</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
 
           <TouchableOpacity style={styles.infoRow} onPress={() => setMapPickerVisible(true)} activeOpacity={0.6}>
             <Feather name="map-pin" size={16} color="#6B7280" />
@@ -257,17 +262,19 @@ export default function DetailScreen() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.checkinBtn}
-            onPress={() => setShowCheckinForm(!showCheckinForm)}
-          >
-            <Feather name="check-circle" size={20} color="#FFFFFF" />
-            <Text style={styles.checkinText}>Check In</Text>
-          </TouchableOpacity>
+          {!isDiscover ? (
+            <TouchableOpacity
+              style={styles.checkinBtn}
+              onPress={() => setShowCheckinForm(!showCheckinForm)}
+            >
+              <Feather name="check-circle" size={20} color="#FFFFFF" />
+              <Text style={styles.checkinText}>Check In</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         {/* Check-in Form */}
-        {showCheckinForm && (
+        {showCheckinForm && !isDiscover && (
           <View style={styles.checkinForm}>
             <Text style={styles.formTitle}>Rate Your Experience</Text>
 

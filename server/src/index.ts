@@ -215,6 +215,74 @@ app.get('/api/v1/shops/nearby', async (req, res) => {
 
 // ============ Wishlist Routes ============
 
+// GET /api/v1/shops/search - Search shops worldwide by name (via Photon/OpenStreetMap)
+app.get('/api/v1/shops/search', async (req, res) => {
+  try {
+    const keyword = (req.query.keyword as string || '').trim();
+    if (!keyword) {
+      return res.json([]);
+    }
+
+    // Photon: worldwide POI search based on OpenStreetMap
+    const response = await axios.get('https://photon.komoot.io/api', {
+      params: { q: keyword, limit: 30, lang: 'en' },
+      timeout: 10000,
+    });
+
+    const POI_KEYS = new Set(['amenity', 'shop', 'tourism', 'leisure']);
+    const CAFE_VALUES = new Set(['cafe', 'coffee_shop', 'deli;coffee_shop', 'coffee_roaster', 'bakery', 'pastry']);
+
+    interface PhotonFeature {
+      properties: Record<string, unknown>;
+      geometry: { coordinates: [number, number] };
+    }
+
+    const seen = new Set<string>();
+    const results = (response.data.features as PhotonFeature[])
+      .filter((f) => {
+        const props = f.properties;
+        if (!props?.name) return false;
+        if (!POI_KEYS.has(String(props.osm_key))) return false;
+        const id = `${props.osm_type}${props.osm_id}`;
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      })
+      .map((f) => {
+        const props = f.properties;
+        const addressParts = [
+          props.housenumber, props.street, props.district, props.city, props.state, props.country,
+        ].filter((p): p is string => typeof p === 'string' && p.length > 0);
+        const [lon, lat] = f.geometry.coordinates;
+        return {
+          poi_id: `osm_${props.osm_type}${props.osm_id}`,
+          name: String(props.name),
+          address: addressParts.join(', '),
+          phone: '',
+          rating: 0,
+          latitude: lat,
+          longitude: lon,
+          distance: '',
+          type: String(props.osm_value || props.osm_key || 'shop'),
+          photos: [],
+          cost: null,
+        };
+      })
+      // Cafe-related results first, then others
+      .sort((a, b) => {
+        const aCafe = CAFE_VALUES.has(a.type) ? 0 : 1;
+        const bCafe = CAFE_VALUES.has(b.type) ? 0 : 1;
+        return aCafe - bCafe;
+      });
+
+    res.json(results);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('GET /api/v1/shops/search error:', message);
+    res.status(500).json({ error: message });
+  }
+});
+
 // GET /api/v1/wishlists/check - Check if a shop is already in user's wishlist
 app.get('/api/v1/wishlists/check', async (req, res) => {
   try {

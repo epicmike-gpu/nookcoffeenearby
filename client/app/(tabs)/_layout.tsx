@@ -36,6 +36,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="discover"
+        options={{
+          title: 'Discover',
+          tabBarIcon: ({ color }) => (
+            <Feather name="globe" size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="wishlist"
         options={{
           title: 'Wishlist',
