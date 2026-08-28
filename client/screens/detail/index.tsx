@@ -129,7 +129,7 @@ export default function DetailScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* Back Button */}
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={22} color="#3C2415" />
+          <Feather name="arrow-left" size={22} color="#7C2D12" />
         </TouchableOpacity>
 
         {/* Image Gallery */}
@@ -145,7 +145,7 @@ export default function DetailScreen() {
           </ScrollView>
         ) : (
           <View style={styles.noImage}>
-            <Feather name="coffee" size={64} color="#C4B8A8" />
+            <Feather name="coffee" size={64} color="#FDBA74" />
           </View>
         )}
 
@@ -160,36 +160,36 @@ export default function DetailScreen() {
                   key={i}
                   name="star"
                   size={16}
-                  color={i < Math.floor(rating) ? '#D4A574' : '#E0D5C8'}
+                  color={i < Math.floor(rating) ? '#F59E0B' : '#FDE68A'}
                 />
               ))}
             </View>
             <Text style={styles.ratingNum}>{rating > 0 ? rating.toFixed(1) : 'N/A'}</Text>
             {cost != null ? (
               <View style={styles.costBadge}>
-                <Feather name="dollar-sign" size={11} color="#6F4E37" />
+                <Feather name="dollar-sign" size={11} color="#F97316" />
                 <Text style={styles.costText}>{cost}/person</Text>
               </View>
             ) : null}
           </View>
 
           <TouchableOpacity style={styles.infoRow} onPress={() => setMapPickerVisible(true)} activeOpacity={0.6}>
-            <Feather name="map-pin" size={16} color="#8B7355" />
+            <Feather name="map-pin" size={16} color="#C2410C" />
             <Text style={styles.infoText}>{params.address}</Text>
-            <Feather name="navigation" size={14} color="#6F4E37" />
+            <Feather name="navigation" size={14} color="#F97316" />
           </TouchableOpacity>
 
           {params.phone ? (
             <TouchableOpacity style={styles.infoRow} onPress={handleCall} activeOpacity={0.6}>
-              <Feather name="phone" size={16} color="#8B7355" />
+              <Feather name="phone" size={16} color="#C2410C" />
               <Text style={styles.infoText}>{params.phone}</Text>
-              <Feather name="phone-call" size={14} color="#6F4E37" />
+              <Feather name="phone-call" size={14} color="#F97316" />
             </TouchableOpacity>
           ) : null}
 
           {params.distance ? (
             <View style={styles.infoRow}>
-              <Feather name="navigation" size={16} color="#8B7355" />
+              <Feather name="navigation" size={16} color="#C2410C" />
               <Text style={styles.infoText}>{params.distance ? `${formatDistance(params.distance)} away` : ''}</Text>
             </View>
           ) : null}
@@ -198,7 +198,7 @@ export default function DetailScreen() {
         {/* Action Buttons */}
         <View style={styles.actions}>
           <TouchableOpacity style={styles.wishlistBtn} onPress={handleWishlist}>
-            <Feather name="heart" size={20} color="#6F4E37" />
+            <Feather name="heart" size={20} color="#F97316" />
             <Text style={styles.wishlistText}>Want to Go</Text>
           </TouchableOpacity>
 
@@ -206,7 +206,7 @@ export default function DetailScreen() {
             style={styles.checkinBtn}
             onPress={() => setShowCheckinForm(!showCheckinForm)}
           >
-            <Feather name="check-circle" size={20} color="#FFFDF9" />
+            <Feather name="check-circle" size={20} color="#FFFFFF" />
             <Text style={styles.checkinText}>Check In</Text>
           </TouchableOpacity>
         </View>
@@ -222,7 +222,7 @@ export default function DetailScreen() {
                   <Ionicons
                     name="star"
                     size={28}
-                    color={star <= checkinRating ? '#D4A574' : '#E0D5C8'}
+                    color={star <= checkinRating ? '#F59E0B' : '#FDE68A'}
                   />
                 </TouchableOpacity>
               ))}
@@ -231,7 +231,7 @@ export default function DetailScreen() {
             <TextInput
               style={styles.noteInput}
               placeholder="Leave a review..."
-              placeholderTextColor="#C4B8A8"
+              placeholderTextColor="#FDBA74"
               value={checkinNote}
               onChangeText={setCheckinNote}
               multiline
@@ -286,16 +286,16 @@ const styles = StyleSheet.create({
   },
   noImage: {
     height: 200,
-    backgroundColor: '#F5EDE4',
+    backgroundColor: '#FFEDD5',
     justifyContent: 'center',
     alignItems: 'center',
   },
   infoCard: {
-    backgroundColor: '#FFFDF9',
+    backgroundColor: '#FFFFFF',
     margin: 16,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#6F4E37',
+    shadowColor: '#F97316',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#F5EDE4',
+    backgroundColor: '#FFEDD5',
     borderRadius: 10,
     paddingHorizontal: 9,
     paddingVertical: 4,
@@ -313,12 +313,12 @@ const styles = StyleSheet.create({
   costText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6F4E37',
+    color: '#F97316',
   },
   shopName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#3C2415',
+    color: '#7C2D12',
     marginBottom: 10,
   },
   ratingRow: {
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   ratingNum: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#D4A574',
+    color: '#F59E0B',
     marginLeft: 6,
   },
   infoRow: {
@@ -341,14 +341,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     marginBottom: 10,
-    backgroundColor: '#FAF6F1',
+    backgroundColor: '#FFF8F0',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
   infoText: {
     fontSize: 14,
-    color: '#5C4033',
+    color: '#9A3412',
     flex: 1,
     lineHeight: 20,
   },
@@ -364,14 +364,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#F5EDE4',
+    backgroundColor: '#FFEDD5',
     paddingVertical: 14,
     borderRadius: 14,
   },
   wishlistText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6F4E37',
+    color: '#F97316',
   },
   checkinBtn: {
     flex: 1,
@@ -379,21 +379,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#6F4E37',
+    backgroundColor: '#F97316',
     paddingVertical: 14,
     borderRadius: 14,
   },
   checkinText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFDF9',
+    color: '#FFFFFF',
   },
   checkinForm: {
-    backgroundColor: '#FFFDF9',
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#6F4E37',
+    shadowColor: '#F97316',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3C2415',
+    color: '#7C2D12',
     marginBottom: 14,
   },
   ratingSelector: {
@@ -412,17 +412,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   noteInput: {
-    backgroundColor: '#F5EDE4',
+    backgroundColor: '#FFEDD5',
     borderRadius: 12,
     padding: 14,
     fontSize: 14,
-    color: '#3C2415',
+    color: '#7C2D12',
     minHeight: 80,
     textAlignVertical: 'top',
     marginBottom: 14,
   },
   submitBtn: {
-    backgroundColor: '#6F4E37',
+    backgroundColor: '#F97316',
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitText: {
-    color: '#FFFDF9',
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
   },

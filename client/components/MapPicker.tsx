@@ -92,13 +92,13 @@ function MapOptionButton({
   return (
     <TouchableOpacity style={styles.optionBtn} onPress={onPress} activeOpacity={0.75}>
       <View style={[styles.optionIcon, { backgroundColor: color }]}>
-        <Feather name="map-pin" size={18} color="#FFFDF9" />
+        <Feather name="map-pin" size={18} color="#FFFFFF" />
       </View>
       <View style={styles.optionTextWrap}>
         <Text style={styles.optionLabel}>{label}</Text>
         <Text style={styles.optionDesc}>{description}</Text>
       </View>
-      <Feather name="chevron-right" size={18} color="#C4B8A8" />
+      <Feather name="chevron-right" size={18} color="#FDBA74" />
     </TouchableOpacity>
   );
 }
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#FFFDF9',
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
@@ -175,18 +175,18 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#3C2415',
+    color: '#7C2D12',
   },
   sheetSubtitle: {
     fontSize: 13,
-    color: '#8B7355',
+    color: '#C2410C',
     marginTop: 4,
     maxWidth: '80%',
   },
   optionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FAF6F1',
+    backgroundColor: '#FFF8F0',
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
@@ -205,11 +205,11 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#3C2415',
+    color: '#7C2D12',
   },
   optionDesc: {
     fontSize: 12,
-    color: '#8B7355',
+    color: '#C2410C',
     marginTop: 2,
   },
   cancelBtn: {
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 15,
-    color: '#8B7355',
+    color: '#C2410C',
     fontWeight: '500',
   },
 });

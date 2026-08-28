@@ -66,7 +66,7 @@ export default function ProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.avatar}>
-            <Feather name="user" size={32} color="#FFFDF9" />
+            <Feather name="user" size={32} color="#FFFFFF" />
           </View>
           <Text style={styles.deviceId}>ID: {user.device_id.slice(0, 8)}...</Text>
         </View>
@@ -76,7 +76,7 @@ export default function ProfileScreen() {
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>Profile</Text>
             <TouchableOpacity onPress={() => setEditing(!editing)}>
-              <Feather name={editing ? 'x' : 'edit-2'} size={18} color="#6F4E37" />
+              <Feather name={editing ? 'x' : 'edit-2'} size={18} color="#F97316" />
             </TouchableOpacity>
           </View>
 
@@ -87,7 +87,7 @@ export default function ProfileScreen() {
                 value={nickname}
                 onChangeText={setNickname}
                 placeholder="Enter your nickname"
-                placeholderTextColor="#C4B8A8"
+                placeholderTextColor="#FDBA74"
               />
               <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
                 <Text style={styles.saveText}>Save</Text>
@@ -101,12 +101,12 @@ export default function ProfileScreen() {
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Feather name="heart" size={24} color="#D4A574" />
+            <Feather name="heart" size={24} color="#F59E0B" />
             <Text style={styles.statNum}>{stats.wishlist_count}</Text>
             <Text style={styles.statLabel}>Want to Go</Text>
           </View>
           <View style={styles.statCard}>
-            <Feather name="check-circle" size={24} color="#6F4E37" />
+            <Feather name="check-circle" size={24} color="#F97316" />
             <Text style={styles.statNum}>{stats.checkin_count}</Text>
             <Text style={styles.statLabel}>Check-ins</Text>
           </View>
@@ -118,10 +118,10 @@ export default function ProfileScreen() {
           onPress={() => router.push('/detail', { page: 'travel' } as any)}
         >
           <View style={styles.menuIcon}>
-            <Feather name="map" size={20} color="#6F4E37" />
+            <Feather name="map" size={20} color="#F97316" />
           </View>
           <Text style={styles.menuText}>Travel Plan</Text>
-          <Feather name="chevron-right" size={20} color="#C4B8A8" />
+          <Feather name="chevron-right" size={20} color="#FDBA74" />
         </TouchableOpacity>
 
         {/* About */}
@@ -148,22 +148,22 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#6F4E37',
+    backgroundColor: '#F97316',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
   deviceId: {
     fontSize: 12,
-    color: '#C4B8A8',
+    color: '#FDBA74',
   },
   card: {
-    backgroundColor: '#FFFDF9',
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#6F4E37',
+    shadowColor: '#F97316',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -178,29 +178,29 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3C2415',
+    color: '#7C2D12',
   },
   nickname: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#3C2415',
+    color: '#7C2D12',
   },
   input: {
-    backgroundColor: '#F5EDE4',
+    backgroundColor: '#FFEDD5',
     borderRadius: 12,
     padding: 14,
     fontSize: 16,
-    color: '#3C2415',
+    color: '#7C2D12',
     marginBottom: 12,
   },
   saveBtn: {
-    backgroundColor: '#6F4E37',
+    backgroundColor: '#F97316',
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
   },
   saveText: {
-    color: '#FFFDF9',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -212,11 +212,11 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFDF9',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
-    shadowColor: '#6F4E37',
+    shadowColor: '#F97316',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -225,23 +225,23 @@ const styles = StyleSheet.create({
   statNum: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#3C2415',
+    color: '#7C2D12',
     marginTop: 8,
   },
   statLabel: {
     fontSize: 12,
-    color: '#8B7355',
+    color: '#C2410C',
     marginTop: 4,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFDF9',
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#6F4E37',
+    shadowColor: '#F97316',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F5EDE4',
+    backgroundColor: '#FFEDD5',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -260,14 +260,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: '#3C2415',
+    color: '#7C2D12',
   },
   aboutCard: {
-    backgroundColor: '#FFFDF9',
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#6F4E37',
+    shadowColor: '#F97316',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -276,12 +276,12 @@ const styles = StyleSheet.create({
   aboutTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3C2415',
+    color: '#7C2D12',
     marginBottom: 8,
   },
   aboutText: {
     fontSize: 13,
-    color: '#8B7355',
+    color: '#C2410C',
     lineHeight: 20,
   },
 });

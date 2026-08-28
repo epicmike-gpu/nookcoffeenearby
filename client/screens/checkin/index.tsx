@@ -49,7 +49,7 @@ function CheckinCard({ item }: { item: CheckinItem }) {
   return (
     <View style={styles.timelineItem}>
       <View style={styles.timelineDot}>
-        <Feather name="check-circle" size={16} color="#6F4E37" />
+        <Feather name="check-circle" size={16} color="#F97316" />
       </View>
       <View style={styles.timelineContent}>
         <View style={styles.card}>
@@ -58,16 +58,16 @@ function CheckinCard({ item }: { item: CheckinItem }) {
               <Image source={{ uri: imageUrl }} style={styles.cardThumb} />
             ) : (
               <View style={[styles.cardThumb, styles.cardThumbPlaceholder]}>
-                <Feather name="coffee" size={24} color="#C4B8A8" />
+                <Feather name="coffee" size={24} color="#FDBA74" />
               </View>
             )}
           </View>
           <View style={styles.cardBody}>
             <Text style={styles.cardName} numberOfLines={1}>{item.shop_name}</Text>
             <TouchableOpacity style={styles.cardRow} onPress={() => setMapPickerVisible(true)} activeOpacity={0.6}>
-              <Feather name="map-pin" size={12} color="#8B7355" />
+              <Feather name="map-pin" size={12} color="#C2410C" />
               <Text style={styles.cardAddress} numberOfLines={1} ellipsizeMode="tail">{item.shop_address}</Text>
-              <Feather name="navigation" size={11} color="#6F4E37" />
+              <Feather name="navigation" size={11} color="#F97316" />
             </TouchableOpacity>
             {item.note ? (
               <Text style={styles.note} numberOfLines={2}>&ldquo;{item.note}&rdquo;</Text>
@@ -115,7 +115,7 @@ export default function CheckinScreen() {
     return (
       <Screen>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#6F4E37" />
+          <ActivityIndicator size="large" color="#F97316" />
         </View>
       </Screen>
     );
@@ -135,11 +135,11 @@ export default function CheckinScreen() {
           renderItem={({ item }) => <CheckinCard item={item} />}
           contentContainerStyle={styles.list}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={fetchCheckins} tintColor="#6F4E37" />
+            <RefreshControl refreshing={refreshing} onRefresh={fetchCheckins} tintColor="#F97316" />
           }
           ListEmptyComponent={
             <View style={styles.center}>
-              <Feather name="check-circle" size={48} color="#C4B8A8" />
+              <Feather name="check-circle" size={48} color="#FDBA74" />
               <Text style={styles.emptyText}>No check-ins yet</Text>
               <Text style={styles.emptySubtext}>Visit a coffee shop and check in to record it</Text>
             </View>
@@ -160,11 +160,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#3C2415',
+    color: '#7C2D12',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#8B7355',
+    color: '#C2410C',
     marginTop: 2,
   },
   list: {
@@ -184,13 +184,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    backgroundColor: '#FFFDF9',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     marginBottom: 12,
     flexDirection: 'row',
     padding: 12,
     gap: 12,
-    shadowColor: '#6F4E37',
+    shadowColor: '#F97316',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   cardThumbPlaceholder: {
-    backgroundColor: '#F5EDE4',
+    backgroundColor: '#FFEDD5',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   cardName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#3C2415',
+    color: '#7C2D12',
   },
   cardRow: {
     flexDirection: 'row',
@@ -228,19 +228,19 @@ const styles = StyleSheet.create({
   },
   cardAddress: {
     fontSize: 12,
-    color: '#8B7355',
+    color: '#C2410C',
     flex: 1,
     lineHeight: 16,
   },
   note: {
     fontSize: 13,
-    color: '#5C4033',
+    color: '#9A3412',
     fontStyle: 'italic',
     lineHeight: 18,
   },
   date: {
     fontSize: 11,
-    color: '#C4B8A8',
+    color: '#FDBA74',
   },
   center: {
     flex: 1,
@@ -252,12 +252,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     fontWeight: '600',
-    color: '#8B7355',
+    color: '#C2410C',
   },
   emptySubtext: {
     marginTop: 8,
     fontSize: 13,
-    color: '#C4B8A8',
+    color: '#FDBA74',
     textAlign: 'center',
   },
 });
