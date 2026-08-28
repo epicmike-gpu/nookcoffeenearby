@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { Screen } from '@/components/Screen';
 import MapPicker, { MapTarget } from '@/components/MapPicker';
 import { useUser } from '@/contexts/UserContext';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
+import { useFocusEffect } from 'expo-router';
 import { API_BASE_URL } from '@/utils/api';
 import { formatDistance } from '@/utils';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -43,6 +44,7 @@ export default function DetailScreen() {
   const [showCheckinForm, setShowCheckinForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [mapPickerVisible, setMapPickerVisible] = useState(false);
+  const [inWishlist, setInWishlist] = useState(false);
 
   const photos: { title: string; url: string }[] = params.photos ? JSON.parse(params.photos) : [];
   const rating = parseFloat(params.rating || '0');
@@ -61,8 +63,47 @@ export default function DetailScreen() {
     });
   };
 
+  // Check wishlist status every time the page gains focus,
+  // so the button re-enables after the item is removed from the wishlist tab
+  useFocusEffect(
+    useCallback(() => {
+      const checkWishlist = async () => {
+        if (!user || !params.poi_id) return;
+        try {
+          /**
+           * 服务端文件：server/src/index.ts
+           * 接口：GET /api/v1/wishlists/check
+           * Query 参数：userId: string, poiId: string
+           */
+          const res = await fetch(
+            `${API_BASE_URL}/wishlists/check?userId=${user.id}&poiId=${encodeURIComponent(params.poi_id)}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setInWishlist(!!data.inWishlist);
+          }
+        } catch {
+          // Silently ignore — keep previous state
+        }
+      };
+      checkWishlist();
+    }, [user, params.poi_id])
+  );
+
+  /**
+   * 服务端文件：server/src/index.ts
+   * 接口：POST /api/v1/wishlists
+   * Body 参数：user_id: string, shop_name: string, shop_address: string,
+   *            shop_phone: string, shop_rating: number, shop_latitude: number,
+   *            shop_longitude: number, shop_poi_id: string, shop_photos: object[]
+   * 409：已在想去列表中
+   */
   const handleWishlist = async () => {
     if (!user) return;
+    if (inWishlist) {
+      Alert.alert('Already Saved', 'This spot is already in your wishlist.');
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE_URL}/wishlists`, {
         method: 'POST',
@@ -79,7 +120,11 @@ export default function DetailScreen() {
           shop_photos: photos,
         }),
       });
-      if (res.ok) {
+      if (res.status === 409) {
+        setInWishlist(true);
+        Alert.alert('Already Saved', 'This spot is already in your wishlist.');
+      } else if (res.ok) {
+        setInWishlist(true);
         Alert.alert('Success', 'Added to your wishlist!');
       } else {
         Alert.alert('Error', 'Failed to add to wishlist');
@@ -197,9 +242,19 @@ export default function DetailScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.wishlistBtn} onPress={handleWishlist}>
-            <Feather name="heart" size={20} color="#111111" />
-            <Text style={styles.wishlistText}>Want to Go</Text>
+          <TouchableOpacity
+            style={[styles.wishlistBtn, inWishlist && styles.wishlistBtnSaved]}
+            onPress={handleWishlist}
+            activeOpacity={inWishlist ? 1 : 0.7}
+          >
+            <Ionicons
+              name={inWishlist ? 'heart' : 'heart-outline'}
+              size={20}
+              color={inWishlist ? '#9CA3AF' : '#111111'}
+            />
+            <Text style={[styles.wishlistText, inWishlist && styles.wishlistTextSaved]}>
+              {inWishlist ? 'Saved' : 'Want to Go'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -368,10 +423,18 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
   },
+  wishlistBtnSaved: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
   wishlistText: {
     fontSize: 15,
     fontWeight: '600',
     color: '#111111',
+  },
+  wishlistTextSaved: {
+    color: '#9CA3AF',
   },
   checkinBtn: {
     flex: 1,

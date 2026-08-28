@@ -215,6 +215,30 @@ app.get('/api/v1/shops/nearby', async (req, res) => {
 
 // ============ Wishlist Routes ============
 
+// GET /api/v1/wishlists/check - Check if a shop is already in user's wishlist
+app.get('/api/v1/wishlists/check', async (req, res) => {
+  try {
+    const { userId, poiId } = req.query as Record<string, string>;
+    if (!userId || !poiId) {
+      return res.status(400).json({ error: 'userId and poiId are required' });
+    }
+
+    const { data, error } = await supabase
+      .from('wishlists')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('shop_poi_id', poiId)
+      .maybeSingle();
+    if (error) throw new Error(`Query failed: ${error.message}`);
+
+    res.json({ inWishlist: !!data, id: data?.id ?? null });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('GET /api/v1/wishlists/check error:', message);
+    res.status(500).json({ error: message });
+  }
+});
+
 // GET /api/v1/wishlists/:userId - Get user's wishlist
 app.get('/api/v1/wishlists/:userId', async (req, res) => {
   try {
@@ -241,6 +265,19 @@ app.post('/api/v1/wishlists', async (req, res) => {
 
     if (!user_id || !shop_name || !shop_address || !shop_latitude || !shop_longitude) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Prevent duplicates: same user + same shop
+    if (shop_poi_id) {
+      const { data: existing } = await supabase
+        .from('wishlists')
+        .select('id')
+        .eq('user_id', user_id)
+        .eq('shop_poi_id', shop_poi_id)
+        .maybeSingle();
+      if (existing) {
+        return res.status(409).json({ error: 'Already in wishlist', id: existing.id });
+      }
     }
 
     const { data, error } = await supabase
