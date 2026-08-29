@@ -565,6 +565,12 @@ function getDemoShops(lat: number, lng: number, isBrunch = false) {
   }));
 }
 
-app.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}/`);
-});
+// Vercel Serverless: export the Express app as the function handler
+export default app;
+
+// Start HTTP server only in local/standalone mode (Vercel injects VERCEL=1)
+if (process.env.VERCEL !== '1') {
+  app.listen(port, () => {
+    console.log(`Server listening at http://localhost:${port}/`);
+  });
+}
