@@ -20,6 +20,7 @@ const AMAP_KEY = process.env.AMAP_API_KEY || '';
 // ============ Health Check ============
 app.get('/api/v1/health', (_req, res) => {
   console.log('Health check success');
+  res.setHeader('X-Build-Marker', 'v-new-20260831');
   res.status(200).json({ status: 'ok' });
 });
 
@@ -262,10 +263,11 @@ app.get('/api/v1/shops/search', async (req, res) => {
     }
 
     // Source 1: AMap text search — full coverage of mainland China
-    const fetchAmap = async (): Promise<ShopResult[]> => {
+    // Single AMap text query, mapped to ShopResult list.
+    const amapQuery = async (kw: string): Promise<ShopResult[]> => {
       if (!AMAP_KEY) return [];
       const params: Record<string, unknown> = {
-        keywords: keyword,
+        keywords: kw,
         key: AMAP_KEY,
         offset: 25,
         extensions: 'all',
@@ -288,7 +290,7 @@ app.get('/api/v1/shops/search', async (req, res) => {
             rating: 0,
             latitude: Number.isFinite(lat) ? lat : 0,
             longitude: Number.isFinite(lng) ? lng : 0,
-            // AMap v3 text API returns no usable distance field ([] placeholder),
+            // AMap text API returns no usable distance field ([] placeholder),
             // so compute it ourselves the same way as Photon results
             distance:
               hasUserLocation && Number.isFinite(lat) && Number.isFinite(lng)
@@ -301,11 +303,47 @@ app.get('/api/v1/shops/search', async (req, res) => {
         });
     };
 
+    // "bluebottle" -> "blue bottle": when the raw keyword is a single lowercase
+    // word and AMap returns too few results, retry with split variants
+    // (insert a space at candidate positions). Lets typo-style queries like
+    // "bluebottle" / "mannercoffee" still hit brand POIs.
+    const splitVariants = (kw: string): string[] => {
+      if (!/^[a-zA-Z]{7,20}$/.test(kw)) return [];
+      const variants: string[] = [];
+      for (let i = 3; i <= Math.min(kw.length - 3, 6); i++) {
+        variants.push(`${kw.slice(0, i)} ${kw.slice(i)}`);
+      }
+      return variants.slice(0, 4);
+    };
+
+    const fetchAmap = async (): Promise<ShopResult[]> => {
+      const primary = await amapQuery(keyword);
+      if (primary.length >= 5) return primary;
+      const variants = splitVariants(keyword);
+      if (!variants.length) return primary;
+      const extra = await Promise.allSettled(variants.map((v) => amapQuery(v)));
+      const merged = [...primary];
+      const seenIds = new Set(primary.map((s) => s.poi_id));
+      for (const r of extra) {
+        if (r.status !== 'fulfilled') continue;
+        for (const s of r.value) {
+          if (!seenIds.has(s.poi_id)) {
+            seenIds.add(s.poi_id);
+            merged.push(s);
+          }
+        }
+      }
+      return merged;
+    };
+
     // Source 2: Photon/OpenStreetMap — worldwide coverage outside China
     const fetchPhoton = async (): Promise<ShopResult[]> => {
       const response = await axios.get('https://photon.komoot.io/api', {
         params: { q: keyword, limit: 30, lang: 'en' },
         timeout: 10000,
+        headers: {
+          'User-Agent': 'CoffeeExplorer/1.0 (+https://www.nookcoffeenearby.top)',
+        },
       });
       interface PhotonFeature {
         properties: Record<string, unknown>;
@@ -364,6 +402,14 @@ app.get('/api/v1/shops/search', async (req, res) => {
       return 0;
     });
 
+    const debugInfo = {
+      amap_key: AMAP_KEY ? 'configured' : 'missing',
+      amap_error: amapRes.status === 'rejected' ? String(amapRes.reason?.message || amapRes.reason).slice(0, 200) : null,
+      photon_error: photonRes.status === 'rejected' ? String(photonRes.reason?.message || photonRes.reason).slice(0, 200) : null,
+      amap_count: amapShops.length,
+      photon_count: photonShops.length,
+    };
+    res.setHeader('X-Search-Debug', JSON.stringify(debugInfo));
     res.json(results);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
