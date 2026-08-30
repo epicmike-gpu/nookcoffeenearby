@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -122,57 +122,10 @@ const MAP_OPTIONS: Record<
   google: { label: 'Google Maps', description: 'Best for overseas', color: '#34A853' },
 };
 
+// 始终展示全部选项：点击时优先唤起原生 App，未安装则自动降级到网页版
+const ALL_PROVIDERS: MapProvider[] = ['apple', 'amap', 'baidu', 'google'];
+
 export default function MapPicker({ visible, target, onClose }: MapPickerProps) {
-  // 设备上已安装（可唤起）的地图 App 列表，只显示这些选项
-  const [installed, setInstalled] = useState<MapProvider[]>([]);
-  const [checked, setChecked] = useState(false);
-
-  useEffect(() => {
-    if (!visible) return;
-    let cancelled = false;
-
-    const detect = async () => {
-      if (Platform.OS === 'web') {
-        // Web 环境没有原生 App 可唤起，展示全部（点击打开网页版地图）
-        if (!cancelled) {
-          setInstalled(['amap', 'baidu', 'google']);
-          setChecked(true);
-        }
-        return;
-      }
-
-      const candidates: { provider: MapProvider; scheme: string; always?: boolean }[] =
-        Platform.OS === 'ios'
-          ? [
-              { provider: 'apple', scheme: 'maps://', always: true }, // 系统自带，必装
-              { provider: 'amap', scheme: 'iosamap://' },
-              { provider: 'baidu', scheme: 'baidumap://' },
-              { provider: 'google', scheme: 'comgooglemaps://' },
-            ]
-          : [
-              { provider: 'amap', scheme: 'androidamap://' },
-              { provider: 'baidu', scheme: 'baidumap://' },
-              { provider: 'google', scheme: 'comgooglemaps://' },
-            ];
-
-      const results = await Promise.all(
-        candidates.map(async (c) =>
-          c.always ? true : await Linking.canOpenURL(c.scheme).catch(() => false)
-        )
-      );
-      if (cancelled) return;
-      setInstalled(
-        candidates.filter((_, i) => results[i]).map((c) => c.provider)
-      );
-      setChecked(true);
-    };
-
-    detect();
-    return () => {
-      cancelled = true;
-    };
-  }, [visible]);
-
   const handleSelect = async (provider: MapProvider) => {
     if (!target) return;
     const ok = await openInMapApp(target, provider);
@@ -195,21 +148,15 @@ export default function MapPicker({ visible, target, onClose }: MapPickerProps) 
             ) : null}
           </View>
 
-          {checked
-            ? installed.map((provider) => (
-                <MapOptionButton
-                  key={provider}
-                  label={MAP_OPTIONS[provider].label}
-                  description={MAP_OPTIONS[provider].description}
-                  color={MAP_OPTIONS[provider].color}
-                  onPress={() => handleSelect(provider)}
-                />
-              ))
-            : null}
-
-          {checked && installed.length === 0 ? (
-            <Text style={styles.emptyText}>No maps app found on this device.</Text>
-          ) : null}
+          {ALL_PROVIDERS.map((provider) => (
+            <MapOptionButton
+              key={provider}
+              label={MAP_OPTIONS[provider].label}
+              description={MAP_OPTIONS[provider].description}
+              color={MAP_OPTIONS[provider].color}
+              onPress={() => handleSelect(provider)}
+            />
+          ))}
 
           <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
             <Text style={styles.cancelText}>Cancel</Text>
