@@ -10,14 +10,32 @@ import {
   Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 import { Feather } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { API_BASE_URL } from '@/utils/api';
+import { formatDistance } from '@/utils';
 import MapPicker, { MapTarget } from '@/components/MapPicker';
 
 const HISTORY_STORAGE_KEY = '@discover_search_history';
 const MAX_HISTORY_ITEMS = 10;
+
+// Module-level cache: fetch user location at most once per app session
+let cachedUserLocation: { latitude: number; longitude: number } | null = null;
+
+async function getUserLocation(): Promise<{ latitude: number; longitude: number } | null> {
+  if (cachedUserLocation) return cachedUserLocation;
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return null;
+    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    cachedUserLocation = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+    return cachedUserLocation;
+  } catch {
+    return null;
+  }
+}
 
 interface Shop {
   poi_id: string;
@@ -27,7 +45,7 @@ interface Shop {
   rating: number;
   latitude: number;
   longitude: number;
-  distance: string;
+  distance: string | number;
   type: string;
   photos: { title: string; url: string }[];
   cost?: number | null;
@@ -53,7 +71,7 @@ function DiscoverCard({ shop }: { shop: Shop }) {
       rating: shop.rating.toString(),
       latitude: shop.latitude.toString(),
       longitude: shop.longitude.toString(),
-      distance: shop.distance,
+      distance: String(shop.distance),
       photos: JSON.stringify(shop.photos || []),
       cost: shop.cost != null ? shop.cost.toString() : '',
       source: 'discover',
@@ -79,6 +97,11 @@ function DiscoverCard({ shop }: { shop: Shop }) {
       <View style={styles.cardContent}>
         <View style={styles.cardNameRow}>
           <Text style={styles.cardName} numberOfLines={1}>{shop.name}</Text>
+          {shop.distance !== '' && shop.distance != null ? (
+            <View style={styles.distanceBadge}>
+              <Text style={styles.distanceText}>{formatDistance(shop.distance)}</Text>
+            </View>
+          ) : null}
         </View>
         <TouchableOpacity style={styles.cardRow} onPress={() => setMapPickerVisible(true)} activeOpacity={0.6}>
           <Feather name="map-pin" size={12} color="#6B7280" />
@@ -124,13 +147,18 @@ export default function DiscoverScreen() {
     setLoading(true);
     setError('');
     try {
+      // Fetch user location once (may be null if permission denied) so results
+      // can be sorted by distance and show a distance badge
+      const loc = await getUserLocation();
+      const locQuery = loc ? `&latitude=${loc.latitude}&longitude=${loc.longitude}` : '';
       /**
        * 服务端文件：server/src/index.ts
        * 接口：GET /api/v1/shops/search
        * Query 参数：keyword: string（店铺名，如 "Fuglen Tokyo"）
+       *             latitude?: number, longitude?: number（用户当前位置，用于距离排序，可省略）
        */
       const res = await fetch(
-        `${API_BASE_URL}/shops/search?keyword=${encodeURIComponent(q)}`
+        `${API_BASE_URL}/shops/search?keyword=${encodeURIComponent(q)}${locQuery}`
       );
       const data = await res.json();
       if (!res.ok) throw new Error('Search failed');
@@ -503,5 +531,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 40,
     lineHeight: 19,
+  },
+  distanceBadge: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginLeft: 8,
+  },
+  distanceText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#374151',
   },
 });

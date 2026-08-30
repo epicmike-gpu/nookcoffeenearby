@@ -223,6 +223,22 @@ app.get('/api/v1/shops/search', async (req, res) => {
       return res.json([]);
     }
 
+    // Optional user location for distance calculation & sorting
+    const userLat = parseFloat(req.query.latitude as string);
+    const userLon = parseFloat(req.query.longitude as string);
+    const hasUserLocation = Number.isFinite(userLat) && Number.isFinite(userLon);
+
+    const haversine = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+      const R = 6371000;
+      const toRad = (d: number) => (d * Math.PI) / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(a));
+    };
+
     // Photon: worldwide POI search based on OpenStreetMap
     const response = await axios.get('https://photon.komoot.io/api', {
       params: { q: keyword, limit: 30, lang: 'en' },
@@ -262,17 +278,23 @@ app.get('/api/v1/shops/search', async (req, res) => {
           rating: 0,
           latitude: lat,
           longitude: lon,
-          distance: '',
+          distance: hasUserLocation ? Math.round(haversine(userLat, userLon, lat, lon)) : '',
           type: String(props.osm_value || props.osm_key || 'shop'),
           photos: [],
           cost: null,
         };
       })
-      // Cafe-related results first, then others
+      // Cafe-related results first, then others; within each group, nearest first
       .sort((a, b) => {
         const aCafe = CAFE_VALUES.has(a.type) ? 0 : 1;
         const bCafe = CAFE_VALUES.has(b.type) ? 0 : 1;
-        return aCafe - bCafe;
+        if (aCafe !== bCafe) return aCafe - bCafe;
+        if (hasUserLocation) {
+          const da = a.distance === '' ? Infinity : Number(a.distance);
+          const db = b.distance === '' ? Infinity : Number(b.distance);
+          return da - db;
+        }
+        return 0;
       });
 
     res.json(results);
