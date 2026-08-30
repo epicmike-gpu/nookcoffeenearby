@@ -21,6 +21,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="detail" />
+        <Stack.Screen name="privacy" />
       </Stack>
     </Provider>
   );

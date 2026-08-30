@@ -28,7 +28,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           "baidumap",
           "comgooglemaps",
           "tel"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -69,22 +70,22 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         "expo-image-picker",
         {
-          "photosPermission": `允许新项目访问您的相册，以便您上传或保存图片。`,
-          "cameraPermission": `允许新项目使用您的相机，以便您直接拍摄照片上传。`,
-          "microphonePermission": `允许新项目访问您的麦克风，以便您拍摄带有声音的视频。`
+          "photosPermission": "Coffee Explorer needs photo library access so you can upload check-in photos or save shop images.",
+          "cameraPermission": "Coffee Explorer needs camera access to take check-in photos.",
+          "microphonePermission": "Coffee Explorer needs microphone access to record sound with your check-in photos."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": `新项目需要访问您的位置以提供周边咖啡店搜索及导航功能。`
+          "locationWhenInUsePermission": "Coffee Explorer needs your location to find nearby coffee shops and provide navigation."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": `新项目需要访问相机以拍摄打卡照片。`,
-          "microphonePermission": `新项目需要访问麦克风以录制视频声音。`,
+          "cameraPermission": "Coffee Explorer needs camera access to take check-in photos.",
+          "microphonePermission": "Coffee Explorer needs microphone access to record sound with your check-in photos.",
           "recordAudioAndroid": true
         }
       ]
