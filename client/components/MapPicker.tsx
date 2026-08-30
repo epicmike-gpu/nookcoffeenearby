@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-export type MapProvider = 'amap' | 'baidu' | 'google';
+export type MapProvider = 'apple' | 'amap' | 'baidu' | 'google';
 
 export type MapTarget = {
   name: string;
@@ -39,6 +39,14 @@ export async function openInMapApp(target: MapTarget, provider: MapProvider): Pr
   let webUrl: string;
 
   switch (provider) {
+    case 'apple':
+      // Apple Maps 为 iOS 系统自带（maps:// scheme），必装必可唤起
+      appUrl =
+        Platform.OS === 'ios'
+          ? `maps://?daddr=${latitude},${longitude}&q=${encName}`
+          : null;
+      webUrl = `https://maps.apple.com/?daddr=${latitude},${longitude}&q=${encName}`;
+      break;
     case 'amap':
       appUrl =
         Platform.OS === 'ios'
@@ -103,7 +111,68 @@ function MapOptionButton({
   );
 }
 
+// 各地图选项的展示信息
+const MAP_OPTIONS: Record<
+  MapProvider,
+  { label: string; description: string; color: string }
+> = {
+  apple: { label: 'Apple Maps', description: 'Built-in on iPhone', color: '#111111' },
+  amap: { label: 'Amap', description: 'Recommended for China', color: '#0090FF' },
+  baidu: { label: 'Baidu Maps', description: 'Open location in Baidu', color: '#3385FF' },
+  google: { label: 'Google Maps', description: 'Best for overseas', color: '#34A853' },
+};
+
 export default function MapPicker({ visible, target, onClose }: MapPickerProps) {
+  // 设备上已安装（可唤起）的地图 App 列表，只显示这些选项
+  const [installed, setInstalled] = useState<MapProvider[]>([]);
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+
+    const detect = async () => {
+      if (Platform.OS === 'web') {
+        // Web 环境没有原生 App 可唤起，展示全部（点击打开网页版地图）
+        if (!cancelled) {
+          setInstalled(['amap', 'baidu', 'google']);
+          setChecked(true);
+        }
+        return;
+      }
+
+      const candidates: { provider: MapProvider; scheme: string; always?: boolean }[] =
+        Platform.OS === 'ios'
+          ? [
+              { provider: 'apple', scheme: 'maps://', always: true }, // 系统自带，必装
+              { provider: 'amap', scheme: 'iosamap://' },
+              { provider: 'baidu', scheme: 'baidumap://' },
+              { provider: 'google', scheme: 'comgooglemaps://' },
+            ]
+          : [
+              { provider: 'amap', scheme: 'androidamap://' },
+              { provider: 'baidu', scheme: 'baidumap://' },
+              { provider: 'google', scheme: 'comgooglemaps://' },
+            ];
+
+      const results = await Promise.all(
+        candidates.map(async (c) =>
+          c.always ? true : await Linking.canOpenURL(c.scheme).catch(() => false)
+        )
+      );
+      if (cancelled) return;
+      setInstalled(
+        candidates.filter((_, i) => results[i]).map((c) => c.provider)
+      );
+      setChecked(true);
+    };
+
+    detect();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible]);
+
   const handleSelect = async (provider: MapProvider) => {
     if (!target) return;
     const ok = await openInMapApp(target, provider);
@@ -126,24 +195,21 @@ export default function MapPicker({ visible, target, onClose }: MapPickerProps) 
             ) : null}
           </View>
 
-          <MapOptionButton
-            label="Amap 高德地图"
-            description="Recommended for China"
-            color="#0090FF"
-            onPress={() => handleSelect('amap')}
-          />
-          <MapOptionButton
-            label="Baidu Maps 百度地图"
-            description="Open location in Baidu Maps"
-            color="#3385FF"
-            onPress={() => handleSelect('baidu')}
-          />
-          <MapOptionButton
-            label="Google Maps"
-            description="Best for overseas"
-            color="#34A853"
-            onPress={() => handleSelect('google')}
-          />
+          {checked
+            ? installed.map((provider) => (
+                <MapOptionButton
+                  key={provider}
+                  label={MAP_OPTIONS[provider].label}
+                  description={MAP_OPTIONS[provider].description}
+                  color={MAP_OPTIONS[provider].color}
+                  onPress={() => handleSelect(provider)}
+                />
+              ))
+            : null}
+
+          {checked && installed.length === 0 ? (
+            <Text style={styles.emptyText}>No maps app found on this device.</Text>
+          ) : null}
 
           <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
             <Text style={styles.cancelText}>Cancel</Text>
@@ -157,23 +223,22 @@ export default function MapPicker({ visible, target, onClose }: MapPickerProps) 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(60,36,21,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   sheet: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 34,
+    paddingTop: 18,
+    paddingBottom: 30,
   },
   sheetHeader: {
-    alignItems: 'center',
-    marginBottom: 18,
+    marginBottom: 14,
   },
   sheetTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: '#111111',
   },
@@ -181,7 +246,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
     marginTop: 4,
-    maxWidth: '80%',
   },
   optionBtn: {
     flexDirection: 'row',
@@ -212,14 +276,22 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 2,
   },
+  emptyText: {
+    fontSize: 13,
+    color: '#6B7280',
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
   cancelBtn: {
+    marginTop: 6,
+    paddingVertical: 14,
     alignItems: 'center',
-    padding: 12,
-    marginTop: 4,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
   },
   cancelText: {
     fontSize: 15,
-    color: '#6B7280',
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#111111',
   },
 });
