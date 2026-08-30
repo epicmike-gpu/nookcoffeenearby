@@ -215,7 +215,9 @@ app.get('/api/v1/shops/nearby', async (req, res) => {
 
 // ============ Wishlist Routes ============
 
-// GET /api/v1/shops/search - Search shops worldwide by name (via Photon/OpenStreetMap)
+// GET /api/v1/shops/search - Search shops worldwide by name
+// Hybrid sources: AMap text search (full mainland-China POI coverage)
+// + Photon/OpenStreetMap (worldwide coverage outside China)
 app.get('/api/v1/shops/search', async (req, res) => {
   try {
     const keyword = (req.query.keyword as string || '').trim();
@@ -239,63 +241,128 @@ app.get('/api/v1/shops/search', async (req, res) => {
       return 2 * R * Math.asin(Math.sqrt(a));
     };
 
-    // Photon: worldwide POI search based on OpenStreetMap
-    const response = await axios.get('https://photon.komoot.io/api', {
-      params: { q: keyword, limit: 30, lang: 'en' },
-      timeout: 10000,
-    });
-
     const POI_KEYS = new Set(['amenity', 'shop', 'tourism', 'leisure']);
     const CAFE_VALUES = new Set(['cafe', 'coffee_shop', 'deli;coffee_shop', 'coffee_roaster', 'bakery', 'pastry']);
+    // Match both OSM english values and AMap chinese category strings
+    const isCafeType = (type: string) =>
+      CAFE_VALUES.has(type) || /咖啡|coffee|烘焙|面包|bakery|pastry/i.test(type);
 
-    interface PhotonFeature {
-      properties: Record<string, unknown>;
-      geometry: { coordinates: [number, number] };
+    interface ShopResult {
+      poi_id: string;
+      name: string;
+      address: string;
+      phone: string;
+      rating: number;
+      latitude: number;
+      longitude: number;
+      distance: string | number;
+      type: string;
+      photos: string[];
+      cost: number | null;
     }
 
-    const seen = new Set<string>();
-    const results = (response.data.features as PhotonFeature[])
-      .filter((f) => {
-        const props = f.properties;
-        if (!props?.name) return false;
-        if (!POI_KEYS.has(String(props.osm_key))) return false;
-        const id = `${props.osm_type}${props.osm_id}`;
-        if (seen.has(id)) return false;
-        seen.add(id);
-        return true;
-      })
-      .map((f) => {
-        const props = f.properties;
-        const addressParts = [
-          props.housenumber, props.street, props.district, props.city, props.state, props.country,
-        ].filter((p): p is string => typeof p === 'string' && p.length > 0);
-        const [lon, lat] = f.geometry.coordinates;
-        return {
-          poi_id: `osm_${props.osm_type}${props.osm_id}`,
-          name: String(props.name),
-          address: addressParts.join(', '),
-          phone: '',
-          rating: 0,
-          latitude: lat,
-          longitude: lon,
-          distance: hasUserLocation ? Math.round(haversine(userLat, userLon, lat, lon)) : '',
-          type: String(props.osm_value || props.osm_key || 'shop'),
-          photos: [],
-          cost: null,
-        };
-      })
-      // Cafe-related results first, then others; within each group, nearest first
-      .sort((a, b) => {
-        const aCafe = CAFE_VALUES.has(a.type) ? 0 : 1;
-        const bCafe = CAFE_VALUES.has(b.type) ? 0 : 1;
-        if (aCafe !== bCafe) return aCafe - bCafe;
-        if (hasUserLocation) {
-          const da = a.distance === '' ? Infinity : Number(a.distance);
-          const db = b.distance === '' ? Infinity : Number(b.distance);
-          return da - db;
-        }
-        return 0;
+    // Source 1: AMap text search — full coverage of mainland China
+    const fetchAmap = async (): Promise<ShopResult[]> => {
+      if (!AMAP_KEY) return [];
+      const params: Record<string, unknown> = {
+        keywords: keyword,
+        key: AMAP_KEY,
+        offset: 25,
+        extensions: 'all',
+      };
+      if (hasUserLocation) {
+        params.location = `${userLon},${userLat}`;
+        params.sortrule = 'distance';
+      }
+      const resp = await axios.get('https://restapi.amap.com/v3/place/text', { params, timeout: 10000 });
+      const pois = resp.data?.pois || [];
+      return pois
+        .filter((p: any) => p?.name)
+        .map((p: any) => {
+          const [lng, lat] = String(p.location || '').split(',').map(Number);
+          return {
+            poi_id: `amap_${p.id}`,
+            name: p.name,
+            address: [p.pname, p.cityname, p.adname, p.address].filter(Boolean).join(''),
+            phone: p.tel || '',
+            rating: 0,
+            latitude: Number.isFinite(lat) ? lat : 0,
+            longitude: Number.isFinite(lng) ? lng : 0,
+            // AMap v3 text API returns no usable distance field ([] placeholder),
+            // so compute it ourselves the same way as Photon results
+            distance:
+              hasUserLocation && Number.isFinite(lat) && Number.isFinite(lng)
+                ? Math.round(haversine(userLat, userLon, lat, lng))
+                : '',
+            type: p.type || '',
+            photos: (p.photos || []).map((ph: any) => ph?.url).filter(Boolean).slice(0, 3),
+            cost: p.biz_ext?.cost ? parseFloat(p.biz_ext.cost) : null,
+          };
+        });
+    };
+
+    // Source 2: Photon/OpenStreetMap — worldwide coverage outside China
+    const fetchPhoton = async (): Promise<ShopResult[]> => {
+      const response = await axios.get('https://photon.komoot.io/api', {
+        params: { q: keyword, limit: 30, lang: 'en' },
+        timeout: 10000,
       });
+      interface PhotonFeature {
+        properties: Record<string, unknown>;
+        geometry: { coordinates: [number, number] };
+      }
+      const seen = new Set<string>();
+      return (response.data.features as PhotonFeature[])
+        .filter((f) => {
+          const props = f.properties;
+          if (!props?.name) return false;
+          if (!POI_KEYS.has(String(props.osm_key))) return false;
+          const id = `${props.osm_type}${props.osm_id}`;
+          if (seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        })
+        .map((f) => {
+          const props = f.properties;
+          const addressParts = [
+            props.housenumber, props.street, props.district, props.city, props.state, props.country,
+          ].filter((p): p is string => typeof p === 'string' && p.length > 0);
+          const [lon, lat] = f.geometry.coordinates;
+          return {
+            poi_id: `osm_${props.osm_type}${props.osm_id}`,
+            name: String(props.name),
+            address: addressParts.join(', '),
+            phone: '',
+            rating: 0,
+            latitude: lat,
+            longitude: lon,
+            distance: hasUserLocation ? Math.round(haversine(userLat, userLon, lat, lon)) : '',
+            type: String(props.osm_value || props.osm_key || 'shop'),
+            photos: [],
+            cost: null,
+          };
+        });
+    };
+
+    // Run both sources in parallel; one failing shouldn't break the other
+    const [amapRes, photonRes] = await Promise.allSettled([fetchAmap(), fetchPhoton()]);
+    const amapShops = amapRes.status === 'fulfilled' ? amapRes.value : [];
+    if (amapRes.status === 'rejected') console.error('AMap search failed:', amapRes.reason?.message);
+    const photonShops = photonRes.status === 'fulfilled' ? photonRes.value : [];
+    if (photonRes.status === 'rejected') console.error('Photon search failed:', photonRes.reason?.message);
+
+    // Cafe-related results first, then others; within each group, nearest first
+    const results = [...amapShops, ...photonShops].sort((a, b) => {
+      const aCafe = isCafeType(a.type) ? 0 : 1;
+      const bCafe = isCafeType(b.type) ? 0 : 1;
+      if (aCafe !== bCafe) return aCafe - bCafe;
+      if (hasUserLocation) {
+        const da = a.distance === '' ? Infinity : Number(a.distance);
+        const db = b.distance === '' ? Infinity : Number(b.distance);
+        return da - db;
+      }
+      return 0;
+    });
 
     res.json(results);
   } catch (err: unknown) {
