@@ -385,35 +385,42 @@ app.get('/api/v1/shops/search', async (req, res) => {
     };
 
     // Photo enrichment: overseas (Photon/OSM) shops carry no photos. When a
-    // YELP_API_KEY is configured, look up matching Yelp businesses by
-    // name+coords and borrow their storefront photos. Yelp Fusion free tier:
-    // 500 calls/day, no credit card required. Silently no-op without a key
-    // so search never depends on it.
-    const enrichYelpPhotos = async (shops: ShopResult[]): Promise<ShopResult[]> => {
-      const yelpKey = process.env.YELP_API_KEY;
-      if (!yelpKey) return shops;
+    // GOOGLE_PLACES_API_KEY is configured, look up matching places via
+    // Places API (New) text search with location bias and use their user
+    // photos. Silently no-op without a key so search never depends on it.
+    const enrichGooglePhotos = async (shops: ShopResult[]): Promise<ShopResult[]> => {
+      const gKey = process.env.GOOGLE_PLACES_API_KEY;
+      if (!gKey) return shops;
       const targets = shops
         .filter((s) => s.poi_id.startsWith('osm_') && !s.photos.length && s.latitude && s.longitude)
         .slice(0, 8);
       if (!targets.length) return shops;
       const lookups = await Promise.allSettled(
         targets.map(async (shop) => {
-          const resp = await axios.get('https://api.yelp.com/v3/businesses/search', {
-            params: {
-              term: shop.name,
-              latitude: shop.latitude,
-              longitude: shop.longitude,
-              radius: 2000,
-              limit: 1,
+          const resp = await axios.post(
+            'https://places.googleapis.com/v1/places:searchText',
+            {
+              textQuery: shop.name,
+              maxResultCount: 1,
+              locationBias: {
+                circle: { center: { latitude: shop.latitude, longitude: shop.longitude }, radius: 2000 },
+              },
             },
-            headers: {
-              Authorization: `Bearer ${yelpKey}`,
-              Accept: 'application/json',
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Goog-Api-Key': gKey,
+                'X-Goog-FieldMask': 'places.photos',
+              },
+              timeout: 8000,
             },
-            timeout: 8000,
-          });
-          const biz = resp.data?.businesses?.[0];
-          const url: string = biz?.image_url || '';
+          );
+          const photos = resp.data?.places?.[0]?.photos || [];
+          const photoName: string = photos[0]?.name || '';
+          // media endpoint redirects to the actual image bytes; RN Image follows it
+          const url = photoName
+            ? `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=600&key=${gKey}`
+            : '';
           return { poi_id: shop.poi_id, photos: url ? [url] : [] };
         }),
       );
@@ -430,8 +437,14 @@ app.get('/api/v1/shops/search', async (req, res) => {
     if (amapRes.status === 'rejected') console.error('AMap search failed:', amapRes.reason?.message);
     const photonShops = photonRes.status === 'fulfilled' ? photonRes.value : [];
     if (photonRes.status === 'rejected') console.error('Photon search failed:', photonRes.reason?.message);
-    const enrichedPhotonShops = await enrichYelpPhotos(photonShops);
-    const yelpEnriched = enrichedPhotonShops.filter((s) => s.poi_id.startsWith('osm_') && s.photos.length).length;
+    let googleError: string | null = null;
+    let enrichedPhotonShops: ShopResult[] = photonShops;
+    try {
+      enrichedPhotonShops = await enrichGooglePhotos(photonShops);
+    } catch (e: unknown) {
+      googleError = String(e instanceof Error ? e.message : e).slice(0, 150);
+    }
+    const googleEnriched = enrichedPhotonShops.filter((s) => s.poi_id.startsWith('osm_') && s.photos.length).length;
 
     // Cafe-related results first, then others; within each group, nearest first
     const results = [...amapShops, ...enrichedPhotonShops].sort((a, b) => {
@@ -452,8 +465,9 @@ app.get('/api/v1/shops/search', async (req, res) => {
       photon_error: photonRes.status === 'rejected' ? String(photonRes.reason?.message || photonRes.reason).slice(0, 200) : null,
       amap_count: amapShops.length,
       photon_count: photonShops.length,
-      yelp_key: process.env.YELP_API_KEY ? 'configured' : 'missing',
-      yelp_enriched: yelpEnriched,
+      google_key: process.env.GOOGLE_PLACES_API_KEY ? 'configured' : 'missing',
+      google_error: googleError,
+      google_enriched: googleEnriched,
     };
     res.setHeader('X-Search-Debug', JSON.stringify(debugInfo));
     res.json(results);
