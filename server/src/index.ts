@@ -385,38 +385,36 @@ app.get('/api/v1/shops/search', async (req, res) => {
     };
 
     // Photo enrichment: overseas (Photon/OSM) shops carry no photos. When a
-    // FOURSQUARE_API_KEY is configured, look up matching Foursquare places by
-    // name+coords and borrow their user-verified storefront photos. Silently
-    // no-op without a key so search never depends on it.
-    const enrichFoursquarePhotos = async (shops: ShopResult[]): Promise<ShopResult[]> => {
-      const fsqKey = process.env.FOURSQUARE_API_KEY;
-      if (!fsqKey) return shops;
+    // YELP_API_KEY is configured, look up matching Yelp businesses by
+    // name+coords and borrow their storefront photos. Yelp Fusion free tier:
+    // 500 calls/day, no credit card required. Silently no-op without a key
+    // so search never depends on it.
+    const enrichYelpPhotos = async (shops: ShopResult[]): Promise<ShopResult[]> => {
+      const yelpKey = process.env.YELP_API_KEY;
+      if (!yelpKey) return shops;
       const targets = shops
         .filter((s) => s.poi_id.startsWith('osm_') && !s.photos.length && s.latitude && s.longitude)
         .slice(0, 8);
       if (!targets.length) return shops;
       const lookups = await Promise.allSettled(
         targets.map(async (shop) => {
-          const resp = await axios.get('https://places-api.foursquare.com/places/search', {
+          const resp = await axios.get('https://api.yelp.com/v3/businesses/search', {
             params: {
-              query: shop.name,
-              ll: `${shop.latitude},${shop.longitude}`,
+              term: shop.name,
+              latitude: shop.latitude,
+              longitude: shop.longitude,
               radius: 2000,
-              fields: 'fsq_place_id,photos',
               limit: 1,
             },
             headers: {
-              Authorization: `Bearer ${fsqKey}`,
-              'X-Places-Api-Version': '2025-06-17',
+              Authorization: `Bearer ${yelpKey}`,
               Accept: 'application/json',
             },
             timeout: 8000,
           });
-          const photos = resp.data?.results?.[0]?.photos || [];
-          const urls = photos
-            .map((ph: any) => (ph?.prefix && ph?.suffix ? `${ph.prefix}600x600${ph.suffix}` : ''))
-            .filter(Boolean);
-          return { poi_id: shop.poi_id, photos: urls.slice(0, 3) };
+          const biz = resp.data?.businesses?.[0];
+          const url: string = biz?.image_url || '';
+          return { poi_id: shop.poi_id, photos: url ? [url] : [] };
         }),
       );
       const photoMap = new Map<string, string[]>();
@@ -432,8 +430,8 @@ app.get('/api/v1/shops/search', async (req, res) => {
     if (amapRes.status === 'rejected') console.error('AMap search failed:', amapRes.reason?.message);
     const photonShops = photonRes.status === 'fulfilled' ? photonRes.value : [];
     if (photonRes.status === 'rejected') console.error('Photon search failed:', photonRes.reason?.message);
-    const enrichedPhotonShops = await enrichFoursquarePhotos(photonShops);
-    const fsqEnriched = enrichedPhotonShops.filter((s) => s.poi_id.startsWith('osm_') && s.photos.length).length;
+    const enrichedPhotonShops = await enrichYelpPhotos(photonShops);
+    const yelpEnriched = enrichedPhotonShops.filter((s) => s.poi_id.startsWith('osm_') && s.photos.length).length;
 
     // Cafe-related results first, then others; within each group, nearest first
     const results = [...amapShops, ...enrichedPhotonShops].sort((a, b) => {
@@ -454,8 +452,8 @@ app.get('/api/v1/shops/search', async (req, res) => {
       photon_error: photonRes.status === 'rejected' ? String(photonRes.reason?.message || photonRes.reason).slice(0, 200) : null,
       amap_count: amapShops.length,
       photon_count: photonShops.length,
-      fsq_key: process.env.FOURSQUARE_API_KEY ? 'configured' : 'missing',
-      fsq_enriched: fsqEnriched,
+      yelp_key: process.env.YELP_API_KEY ? 'configured' : 'missing',
+      yelp_enriched: yelpEnriched,
     };
     res.setHeader('X-Search-Debug', JSON.stringify(debugInfo));
     res.json(results);
