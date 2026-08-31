@@ -38,7 +38,7 @@ function formatDate(dateStr: string): string {
 function CheckinCard({ item }: { item: CheckinItem }) {
   const [mapPickerVisible, setMapPickerVisible] = useState(false);
   const photos = item.shop_photos ? JSON.parse(item.shop_photos) : [];
-  const imageUrl = photos[0]?.url || '';
+  const imageUrl = photos[0] || '';
 
   const mapTarget: MapTarget = {
     name: item.shop_name,

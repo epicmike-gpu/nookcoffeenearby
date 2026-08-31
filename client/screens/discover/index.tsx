@@ -47,14 +47,14 @@ interface Shop {
   longitude: number;
   distance: string | number;
   type: string;
-  photos: { title: string; url: string }[];
+  photos: string[];
   cost?: number | null;
 }
 
 function DiscoverCard({ shop }: { shop: Shop }) {
   const router = useSafeRouter();
   const [mapPickerVisible, setMapPickerVisible] = useState(false);
-  const imageUrl = shop.photos?.[0]?.url || '';
+  const imageUrl = shop.photos?.[0] || '';
 
   const mapTarget: MapTarget = {
     name: shop.name,

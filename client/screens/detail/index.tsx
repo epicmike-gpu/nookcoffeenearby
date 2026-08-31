@@ -47,7 +47,7 @@ export default function DetailScreen() {
   const [mapPickerVisible, setMapPickerVisible] = useState(false);
   const [inWishlist, setInWishlist] = useState(false);
 
-  const photos: { title: string; url: string }[] = params.photos ? JSON.parse(params.photos) : [];
+  const photos: string[] = params.photos ? JSON.parse(params.photos) : [];
   const rating = parseFloat(params.rating || '0');
   const cost = params.cost ? parseInt(params.cost, 10) : null;
   // Global search results (Discover tab) only support Want to Go — no check-in
@@ -98,7 +98,7 @@ export default function DetailScreen() {
    * 接口：POST /api/v1/wishlists
    * Body 参数：user_id: string, shop_name: string, shop_address: string,
    *            shop_phone: string, shop_rating: number, shop_latitude: number,
-   *            shop_longitude: number, shop_poi_id: string, shop_photos: object[]
+   *            shop_longitude: number, shop_poi_id: string, shop_photos: string[]
    * 409：已在想去列表中
    */
   const handleWishlist = async () => {
@@ -186,7 +186,7 @@ export default function DetailScreen() {
             {photos.map((photo, index) => (
               <Image
                 key={index}
-                source={{ uri: photo.url }}
+                source={{ uri: photo }}
                 style={styles.galleryImage}
               />
             ))}
