@@ -145,13 +145,33 @@ app.get('/api/v1/logo-proxy', async (req, res) => {
     if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) {
       return res.status(400).json({ error: 'invalid domain' });
     }
-    // unavatar.io serves PNG directly (favicone only serves ICO which sharp
-    // cannot decode). sharp normalizes whatever comes back (svg/jpg/webpng).
-    const upstream = await axios.get(`https://unavatar.io/${domain}?fallback=false`, {
-      responseType: 'arraybuffer',
-      timeout: 10000,
-    });
-    const png = await sharp(upstream.data)
+    // Multi-source favicon fetch. unavatar.io serves PNG directly but rate-
+    // limits some cloud egress IPs; Google s2 favicons is the backup. sharp
+    // normalizes whatever comes back (svg/jpg/png) into a 128px PNG.
+    let imageBuf: Buffer | null = null;
+    const sources = [
+      `https://unavatar.io/${domain}?fallback=false`,
+      `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+    ];
+    for (const srcUrl of sources) {
+      try {
+        const upstream = await axios.get(srcUrl, { responseType: 'arraybuffer', timeout: 8000 });
+        imageBuf = Buffer.from(upstream.data);
+        break;
+      } catch {
+        // try next source
+      }
+    }
+    if (!imageBuf) {
+      const blank = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+        'base64',
+      );
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      return res.status(200).send(blank);
+    }
+    const png = await sharp(imageBuf)
       .resize(128, 128, { fit: 'cover' })
       .png()
       .toBuffer();
