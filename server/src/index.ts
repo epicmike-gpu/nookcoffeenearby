@@ -390,11 +390,11 @@ app.get('/api/v1/shops/search', async (req, res) => {
     // photos. Silently no-op without a key so search never depends on it.
     const enrichGooglePhotos = async (shops: ShopResult[]): Promise<{ shops: ShopResult[]; error: string | null }> => {
       const gKey = process.env.GOOGLE_PLACES_API_KEY;
-      if (!gKey) return shops;
+      if (!gKey) return { shops, error: null };
       const targets = shops
         .filter((s) => s.poi_id.startsWith('osm_') && !s.photos.length && s.latitude && s.longitude)
         .slice(0, 8);
-      if (!targets.length) return shops;
+      if (!targets.length) return { shops, error: null };
       const lookups = await Promise.allSettled(
         targets.map(async (shop) => {
           const resp = await axios.post(
