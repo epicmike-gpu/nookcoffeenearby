@@ -162,6 +162,38 @@ app.get('/api/v1/logo-proxy', async (req, res) => {
         // try next source
       }
     }
+    // Source 3: scrape the site homepage for a <link rel="icon"> declaration
+    // (covers niche domains the aggregators have not cached yet).
+    if (!imageBuf) {
+      try {
+        const page = await axios.get(`https://${domain}/`, {
+          responseType: 'text',
+          timeout: 8000,
+          headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126.0 Safari/537.36' },
+        });
+        const html: string = typeof page.data === 'string' ? page.data : '';
+        let iconHref = '';
+        for (const tag of html.match(/<link[^>]+>/gi) || []) {
+          if (/rel=["'][^"']*icon[^"']*["']/i.test(tag)) {
+            const href = /href=["']([^"']+)["']/i.exec(tag)?.[1];
+            if (href) {
+              iconHref = href;
+              // prefer png/svg over ico if multiple links declare icons
+              if (!/\.ico/i.test(href)) break;
+            }
+          }
+        }
+        if (iconHref) {
+          if (iconHref.startsWith('//')) iconHref = `https:${iconHref}`;
+          else if (iconHref.startsWith('/')) iconHref = `https://${domain}${iconHref}`;
+          if (!/^https?:\/\//.test(iconHref)) iconHref = `https://${domain}/${iconHref}`;
+          const icon = await axios.get(iconHref, { responseType: 'arraybuffer', timeout: 8000 });
+          imageBuf = Buffer.from(icon.data);
+        }
+      } catch {
+        // fall through to blank
+      }
+    }
     if (!imageBuf) {
       const blank = Buffer.from(
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
