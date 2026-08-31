@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from "express";
 import cors from "cors";
 import axios from "axios";
+import sharp from "sharp";
 import { getSupabaseClient } from "./storage/database/supabase-client.js";
 
 const app = express();
@@ -134,6 +135,41 @@ interface AmapPoi {
   distance: string;
   photos: { title: string; url: string }[];
 }
+
+// ---- GET /api/v1/logo-proxy?domain=example.com
+// Fetches a site's favicon (favicone.com) and re-encodes to PNG, because
+// React Native's Image cannot decode ICO/SVG. 7-day immutable cache.
+app.get('/api/v1/logo-proxy', async (req, res) => {
+  try {
+    const domain = String(req.query.domain || '').toLowerCase().trim();
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) {
+      return res.status(400).json({ error: 'invalid domain' });
+    }
+    // unavatar.io serves PNG directly (favicone only serves ICO which sharp
+    // cannot decode). sharp normalizes whatever comes back (svg/jpg/webpng).
+    const upstream = await axios.get(`https://unavatar.io/${domain}?fallback=false`, {
+      responseType: 'arraybuffer',
+      timeout: 10000,
+    });
+    const png = await sharp(upstream.data)
+      .resize(128, 128, { fit: 'cover' })
+      .png()
+      .toBuffer();
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+    return res.send(png);
+  } catch (err: unknown) {
+    console.error('GET /api/v1/logo-proxy error:', err instanceof Error ? err.message : err);
+    // 1x1 transparent PNG so <Image> renders quietly instead of erroring
+    const blank = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return res.status(200).send(blank);
+  }
+});
 
 app.get('/api/v1/shops/nearby', async (req, res) => {
   try {
@@ -465,6 +501,65 @@ app.get('/api/v1/shops/search', async (req, res) => {
     }
     const googleEnriched = enrichedPhotonShops.filter((s) => s.poi_id.startsWith('osm_') && s.photos.length).length;
 
+    // Logo fallback: overseas shops that still have no photo. OSM POIs often
+    // carry a website tag -> serve the site favicon as PNG via /api/v1/logo-proxy.
+    let logoError: string | null = null;
+    let logoCount = 0;
+    const osmNoPhoto = enrichedPhotonShops.filter(
+      (s) => s.poi_id.startsWith('osm_') && !s.photos.length && s.latitude && s.longitude,
+    );
+    if (osmNoPhoto.length) {
+      try {
+        const byType: Record<string, number[]> = { N: [], W: [], R: [] };
+        for (const s of osmNoPhoto) {
+          const m = /^osm_([NWR])(\d+)$/.exec(s.poi_id);
+          if (m) byType[m[1]].push(Number(m[2]));
+        }
+        const parts: string[] = [];
+        if (byType.N.length) parts.push(`node(id:${byType.N.join(',')});`);
+        if (byType.W.length) parts.push(`way(id:${byType.W.join(',')});`);
+        if (byType.R.length) parts.push(`rel(id:${byType.R.join(',')});`);
+        const ql = `[out:json][timeout:15];(${parts.join('')});out tags;`;
+        // Overpass WAF rejects non-curl User-Agents and any Accept-Encoding
+        // header -> must POST the raw QL body as text/plain with UA "curl/x.y".
+        // Overpass intermittently 504s under load -> one retry after 3s.
+        let ov;
+        try {
+          ov = await axios.post('https://overpass-api.de/api/interpreter', ql, {
+            headers: { 'Content-Type': 'text/plain', 'User-Agent': 'curl/8.5.0' },
+            timeout: 15000,
+          });
+        } catch (retryErr: unknown) {
+          await new Promise((r) => setTimeout(r, 3000));
+          ov = await axios.post('https://overpass-api.de/api/interpreter', ql, {
+            headers: { 'Content-Type': 'text/plain', 'User-Agent': 'curl/8.5.0' },
+            timeout: 15000,
+          });
+        }
+        const websiteById = new Map<number, string>();
+        for (const el of ov.data?.elements || []) {
+          const site: string = el?.tags?.website || el?.tags?.['contact:website'] || '';
+          if (site) websiteById.set(el.id, site);
+        }
+        const proto = (req.headers['x-forwarded-proto'] as string) || 'http';
+        const host = req.headers.host || 'localhost:9091';
+        for (const s of osmNoPhoto) {
+          const m = /^osm_([NWR])(\d+)$/.exec(s.poi_id);
+          const site = m ? websiteById.get(Number(m[2])) : '';
+          if (!site) continue;
+          try {
+            const hostname = new URL(site).hostname;
+            s.photos = [`${proto}://${host}/api/v1/logo-proxy?domain=${encodeURIComponent(hostname)}`];
+            logoCount++;
+          } catch {
+            // malformed website tag, skip
+          }
+        }
+      } catch (e: unknown) {
+        logoError = String(e instanceof Error ? e.message : e).slice(0, 120);
+      }
+    }
+
     // Cafe-related results first, then others; within each group, nearest first
     const results = [...amapShops, ...enrichedPhotonShops].sort((a, b) => {
       const aCafe = isCafeType(a.type) ? 0 : 1;
@@ -487,6 +582,8 @@ app.get('/api/v1/shops/search', async (req, res) => {
       google_key: process.env.GOOGLE_PLACES_API_KEY ? 'configured' : 'missing',
       google_error: googleError,
       google_enriched: googleEnriched,
+      logo_count: logoCount,
+      logo_error: logoError,
     };
     res.setHeader('X-Search-Debug', JSON.stringify(debugInfo));
     res.json(results);
