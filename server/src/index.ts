@@ -148,6 +148,8 @@ app.get('/api/v1/logo-proxy', async (req, res) => {
     // Multi-source favicon fetch. unavatar.io serves PNG directly but rate-
     // limits some cloud egress IPs; Google s2 favicons is the backup. sharp
     // normalizes whatever comes back (svg/jpg/png) into a 128px PNG.
+    const wantsDebug = req.query.debug === '1';
+    const diag: Array<Record<string, unknown>> = [];
     let imageBuf: Buffer | null = null;
     const sources = [
       `https://unavatar.io/${domain}?fallback=false`,
@@ -157,8 +159,11 @@ app.get('/api/v1/logo-proxy', async (req, res) => {
       try {
         const upstream = await axios.get(srcUrl, { responseType: 'arraybuffer', timeout: 8000 });
         imageBuf = Buffer.from(upstream.data);
+        diag.push({ src: srcUrl.split('/')[2], status: upstream.status, bytes: imageBuf.length });
         break;
-      } catch {
+      } catch (e: unknown) {
+        const status = (e as { response?: { status?: number } })?.response?.status;
+        diag.push({ src: srcUrl.split('/')[2], status: status ?? 'timeout/net', msg: String((e as Error).message).slice(0, 60) });
         // try next source
       }
     }
@@ -171,6 +176,7 @@ app.get('/api/v1/logo-proxy', async (req, res) => {
           timeout: 8000,
           headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126.0 Safari/537.36' },
         });
+        diag.push({ src: 'homepage', status: page.status, chars: String(page.data || '').length });
         const html: string = typeof page.data === 'string' ? page.data : '';
         let iconHref = '';
         for (const tag of html.match(/<link[^>]+>/gi) || []) {
@@ -183,18 +189,21 @@ app.get('/api/v1/logo-proxy', async (req, res) => {
             }
           }
         }
+        diag.push({ src: 'homepage-icon-href', href: iconHref || '(none)' });
         if (iconHref) {
           if (iconHref.startsWith('//')) iconHref = `https:${iconHref}`;
           else if (iconHref.startsWith('/')) iconHref = `https://${domain}${iconHref}`;
           if (!/^https?:\/\//.test(iconHref)) iconHref = `https://${domain}/${iconHref}`;
           const icon = await axios.get(iconHref, { responseType: 'arraybuffer', timeout: 8000 });
           imageBuf = Buffer.from(icon.data);
+          diag.push({ src: 'icon-download', status: icon.status, bytes: imageBuf.length });
         }
       } catch {
         // fall through to blank
       }
     }
     if (!imageBuf) {
+      if (wantsDebug) return res.status(200).json({ result: 'fallback', diag });
       const blank = Buffer.from(
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
         'base64',
@@ -207,6 +216,7 @@ app.get('/api/v1/logo-proxy', async (req, res) => {
       .resize(128, 128, { fit: 'cover' })
       .png()
       .toBuffer();
+    if (wantsDebug) return res.status(200).json({ result: 'ok', diag });
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
     return res.send(png);
