@@ -359,9 +359,93 @@ app.get('/api/v1/shops/nearby', async (req, res) => {
       };
     });
 
+    // Overseas fallback: AMap has zero POI coverage outside mainland China.
+    // When AMap returns nothing, query Overpass for nearby OSM cafes; shops
+    // with a website tag get a favicon logo via /api/v1/logo-proxy.
+    let shopList = shops;
+    let overpassUsed = false;
+    if (!shopList.length) {
+      try {
+        const radiusM = Math.min(parseInt(radius, 10) || 3000, 8000);
+        const amenityTags = isBrunch ? ['amenity=cafe', 'amenity=restaurant'] : ['amenity=cafe'];
+        const parts: string[] = [];
+        for (const t of amenityTags) {
+          parts.push(`node(around:${radiusM},${latitude},${longitude})[${t}];`);
+          parts.push(`way(around:${radiusM},${latitude},${longitude})[${t}];`);
+        }
+        const ql = `[out:json][timeout:15];(${parts.join('')});out center tags 25;`;
+        // Overpass WAF rejects non-curl User-Agents -> raw text/plain POST.
+        let ov;
+        try {
+          ov = await axios.post('https://overpass-api.de/api/interpreter', ql, {
+            headers: { 'Content-Type': 'text/plain', 'User-Agent': 'curl/8.5.0' },
+            timeout: 15000,
+          });
+        } catch {
+          await new Promise((r) => setTimeout(r, 3000));
+          ov = await axios.post('https://overpass-api.de/api/interpreter', ql, {
+            headers: { 'Content-Type': 'text/plain', 'User-Agent': 'curl/8.5.0' },
+            timeout: 15000,
+          });
+        }
+        const proto = (req.headers['x-forwarded-proto'] as string) || 'http';
+        const host = req.headers.host || 'localhost:9091';
+        const lat0 = parseFloat(latitude);
+        const lon0 = parseFloat(longitude);
+        const haversine = (la2: number, lo2: number) => {
+          const R = 6371000;
+          const dLat = ((la2 - lat0) * Math.PI) / 180;
+          const dLon = ((lo2 - lon0) * Math.PI) / 180;
+          const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos((lat0 * Math.PI) / 180) * Math.cos((la2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+          return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+        };
+        const seen = new Set<string>();
+        shopList = (ov.data?.elements || [])
+          .map((el: any) => {
+            const tags = el.tags || {};
+            const name = tags.name || tags['name:en'] || '';
+            const la = el.lat ?? el.center?.lat;
+            const lo = el.lon ?? el.center?.lon;
+            if (!name || !la || !lo) return null;
+            const key = `${name}|${la.toFixed(5)}|${lo.toFixed(5)}`;
+            if (seen.has(key)) return null;
+            seen.add(key);
+            const website: string = tags.website || tags['contact:website'] || '';
+            let photos: string[] = [];
+            if (website) {
+              try {
+                const hostname = new URL(website).hostname;
+                photos = [`${proto}://${host}/api/v1/logo-proxy?domain=${encodeURIComponent(hostname)}`];
+              } catch {
+                // malformed website tag
+              }
+            }
+            return {
+              poi_id: `osm_${el.type[0].toUpperCase()}${el.id}`,
+              name,
+              address: [tags['addr:street'], tags['addr:housenumber']].filter(Boolean).join(' ') || '暂无地址',
+              phone: tags.phone || tags['contact:phone'] || '',
+              rating: 0,
+              latitude: la,
+              longitude: lo,
+              distance: String(haversine(la, lo)),
+              type: '咖啡厅',
+              photos,
+              cost: null as number | null,
+            };
+          })
+          .filter(Boolean);
+        overpassUsed = true;
+      } catch (e: unknown) {
+        console.error('nearby Overpass fallback error:', e instanceof Error ? e.message : e);
+      }
+    }
+
     // Sort: rating (desc) | distance (asc) | cost (asc, unknown last)
     const sortMode = (req.query.sort as string) || 'distance';
-    const sorted = [...shops].sort((a: any, b: any) => {
+    const sorted = [...shopList].sort((a: any, b: any) => {
       if (sortMode === 'rating') return (b.rating || 0) - (a.rating || 0);
       if (sortMode === 'cost') {
         if (a.cost == null) return 1;
@@ -371,6 +455,10 @@ app.get('/api/v1/shops/nearby', async (req, res) => {
       return parseFloat(a.distance || '0') - parseFloat(b.distance || '0');
     });
 
+    res.setHeader(
+      'X-Nearby-Debug',
+      JSON.stringify({ amap_count: shops.length, overpass_used: overpassUsed, total: sorted.length }),
+    );
     res.json(sorted);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
