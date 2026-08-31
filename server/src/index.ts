@@ -384,15 +384,55 @@ app.get('/api/v1/shops/search', async (req, res) => {
         });
     };
 
+    // Photo enrichment: overseas (Photon/OSM) shops carry no photos. When a
+    // FOURSQUARE_API_KEY is configured, look up matching Foursquare places by
+    // name+coords and borrow their user-verified storefront photos. Silently
+    // no-op without a key so search never depends on it.
+    const enrichFoursquarePhotos = async (shops: ShopResult[]): Promise<ShopResult[]> => {
+      const fsqKey = process.env.FOURSQUARE_API_KEY;
+      if (!fsqKey) return shops;
+      const targets = shops
+        .filter((s) => s.poi_id.startsWith('osm_') && !s.photos.length && s.latitude && s.longitude)
+        .slice(0, 8);
+      if (!targets.length) return shops;
+      const lookups = await Promise.allSettled(
+        targets.map(async (shop) => {
+          const resp = await axios.get('https://api.foursquare.com/v3/places/search', {
+            params: {
+              query: shop.name,
+              ll: `${shop.latitude},${shop.longitude}`,
+              radius: 2000,
+              fields: 'fsq_id,photos',
+              limit: 1,
+            },
+            headers: { Authorization: fsqKey, Accept: 'application/json' },
+            timeout: 8000,
+          });
+          const photos = resp.data?.results?.[0]?.photos || [];
+          const urls = photos
+            .map((ph: any) => (ph?.prefix && ph?.suffix ? `${ph.prefix}600x600${ph.suffix}` : ''))
+            .filter(Boolean);
+          return { poi_id: shop.poi_id, photos: urls.slice(0, 3) };
+        }),
+      );
+      const photoMap = new Map<string, string[]>();
+      for (const r of lookups) {
+        if (r.status === 'fulfilled' && r.value.photos.length) photoMap.set(r.value.poi_id, r.value.photos);
+      }
+      return shops.map((s) => (photoMap.has(s.poi_id) ? { ...s, photos: photoMap.get(s.poi_id)! } : s));
+    };
+
     // Run both sources in parallel; one failing shouldn't break the other
     const [amapRes, photonRes] = await Promise.allSettled([fetchAmap(), fetchPhoton()]);
     const amapShops = amapRes.status === 'fulfilled' ? amapRes.value : [];
     if (amapRes.status === 'rejected') console.error('AMap search failed:', amapRes.reason?.message);
     const photonShops = photonRes.status === 'fulfilled' ? photonRes.value : [];
     if (photonRes.status === 'rejected') console.error('Photon search failed:', photonRes.reason?.message);
+    const enrichedPhotonShops = await enrichFoursquarePhotos(photonShops);
+    const fsqEnriched = enrichedPhotonShops.filter((s) => s.poi_id.startsWith('osm_') && s.photos.length).length;
 
     // Cafe-related results first, then others; within each group, nearest first
-    const results = [...amapShops, ...photonShops].sort((a, b) => {
+    const results = [...amapShops, ...enrichedPhotonShops].sort((a, b) => {
       const aCafe = isCafeType(a.type) ? 0 : 1;
       const bCafe = isCafeType(b.type) ? 0 : 1;
       if (aCafe !== bCafe) return aCafe - bCafe;
@@ -410,6 +450,8 @@ app.get('/api/v1/shops/search', async (req, res) => {
       photon_error: photonRes.status === 'rejected' ? String(photonRes.reason?.message || photonRes.reason).slice(0, 200) : null,
       amap_count: amapShops.length,
       photon_count: photonShops.length,
+      fsq_key: process.env.FOURSQUARE_API_KEY ? 'configured' : 'missing',
+      fsq_enriched: fsqEnriched,
     };
     res.setHeader('X-Search-Debug', JSON.stringify(debugInfo));
     res.json(results);
