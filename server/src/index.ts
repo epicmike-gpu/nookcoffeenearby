@@ -388,7 +388,7 @@ app.get('/api/v1/shops/search', async (req, res) => {
     // GOOGLE_PLACES_API_KEY is configured, look up matching places via
     // Places API (New) text search with location bias and use their user
     // photos. Silently no-op without a key so search never depends on it.
-    const enrichGooglePhotos = async (shops: ShopResult[]): Promise<ShopResult[]> => {
+    const enrichGooglePhotos = async (shops: ShopResult[]): Promise<{ shops: ShopResult[]; error: string | null }> => {
       const gKey = process.env.GOOGLE_PLACES_API_KEY;
       if (!gKey) return shops;
       const targets = shops
@@ -425,10 +425,21 @@ app.get('/api/v1/shops/search', async (req, res) => {
         }),
       );
       const photoMap = new Map<string, string[]>();
+      let firstError: string | null = null;
       for (const r of lookups) {
-        if (r.status === 'fulfilled' && r.value.photos.length) photoMap.set(r.value.poi_id, r.value.photos);
+        if (r.status === 'fulfilled') {
+          if (r.value.photos.length) photoMap.set(r.value.poi_id, r.value.photos);
+        } else if (!firstError) {
+          const reason: any = r.reason;
+          firstError = reason?.response?.data
+            ? JSON.stringify(reason.response.data).slice(0, 150)
+            : String(reason?.message || reason).slice(0, 150);
+        }
       }
-      return shops.map((s) => (photoMap.has(s.poi_id) ? { ...s, photos: photoMap.get(s.poi_id)! } : s));
+      return {
+        shops: shops.map((s) => (photoMap.has(s.poi_id) ? { ...s, photos: photoMap.get(s.poi_id)! } : s)),
+        error: firstError,
+      };
     };
 
     // Run both sources in parallel; one failing shouldn't break the other
@@ -440,7 +451,9 @@ app.get('/api/v1/shops/search', async (req, res) => {
     let googleError: string | null = null;
     let enrichedPhotonShops: ShopResult[] = photonShops;
     try {
-      enrichedPhotonShops = await enrichGooglePhotos(photonShops);
+      const enrichment = await enrichGooglePhotos(photonShops);
+      enrichedPhotonShops = enrichment.shops;
+      googleError = enrichment.error;
     } catch (e: unknown) {
       googleError = String(e instanceof Error ? e.message : e).slice(0, 150);
     }
