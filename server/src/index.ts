@@ -415,13 +415,18 @@ app.get('/api/v1/shops/search', async (req, res) => {
               timeout: 8000,
             },
           );
-          const photos = resp.data?.places?.[0]?.photos || [];
+          const places = resp.data?.places || [];
+          const photos = places[0]?.photos || [];
           const photoName: string = photos[0]?.name || '';
           // media endpoint redirects to the actual image bytes; RN Image follows it
           const url = photoName
             ? `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=600&key=${gKey}`
             : '';
-          return { poi_id: shop.poi_id, photos: url ? [url] : [] };
+          return {
+            poi_id: shop.poi_id,
+            photos: url ? [url] : [],
+            sample: `places:${places.length} ` + JSON.stringify(resp.data).slice(0, 130),
+          };
         }),
       );
       const photoMap = new Map<string, string[]>();
@@ -429,6 +434,7 @@ app.get('/api/v1/shops/search', async (req, res) => {
       for (const r of lookups) {
         if (r.status === 'fulfilled') {
           if (r.value.photos.length) photoMap.set(r.value.poi_id, r.value.photos);
+          else if (!firstError) firstError = 'empty:' + (r.value.sample || 'no-sample');
         } else if (!firstError) {
           const reason: any = r.reason;
           firstError = reason?.response?.data
