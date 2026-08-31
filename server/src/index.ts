@@ -410,7 +410,7 @@ app.get('/api/v1/shops/search', async (req, res) => {
               headers: {
                 'Content-Type': 'application/json',
                 'X-Goog-Api-Key': gKey,
-                'X-Goog-FieldMask': 'places.photos',
+                'X-Goog-FieldMask': 'places.displayName,places.photos',
               },
               timeout: 8000,
             },
