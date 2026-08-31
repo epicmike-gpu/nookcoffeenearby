@@ -397,15 +397,19 @@ app.get('/api/v1/shops/search', async (req, res) => {
       if (!targets.length) return shops;
       const lookups = await Promise.allSettled(
         targets.map(async (shop) => {
-          const resp = await axios.get('https://api.foursquare.com/v3/places/search', {
+          const resp = await axios.get('https://places-api.foursquare.com/places/search', {
             params: {
               query: shop.name,
               ll: `${shop.latitude},${shop.longitude}`,
               radius: 2000,
-              fields: 'fsq_id,photos',
+              fields: 'fsq_place_id,photos',
               limit: 1,
             },
-            headers: { Authorization: fsqKey, Accept: 'application/json' },
+            headers: {
+              Authorization: `Bearer ${fsqKey}`,
+              'X-Places-Api-Version': '2025-06-17',
+              Accept: 'application/json',
+            },
             timeout: 8000,
           });
           const photos = resp.data?.results?.[0]?.photos || [];
