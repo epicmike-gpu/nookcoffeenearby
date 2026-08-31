@@ -136,6 +136,61 @@ interface AmapPoi {
   photos: { title: string; url: string }[];
 }
 
+// ---- ICO -> PNG decoding (sharp/libvips cannot read ICO natively).
+// Picks the largest embedded image: PNG entries pass straight through;
+// 32bpp BMP-DIB entries are decoded to RGBA and fed to sharp as raw pixels.
+async function icoToPng(buf: Buffer): Promise<Buffer | null> {
+  try {
+    if (buf.length < 6 || buf.readUInt16LE(0) !== 0 || buf.readUInt16LE(2) !== 1) return null;
+    const count = buf.readUInt16LE(4);
+    const pngMagic = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    let best: { w: number; size: number; off: number } | null = null;
+    for (let i = 0; i < count; i++) {
+      const e = 6 + i * 16;
+      if (e + 16 > buf.length) break;
+      const w = buf[e] || 256;
+      const size = buf.readUInt32LE(e + 8);
+      const off = buf.readUInt32LE(e + 12);
+      if (!best || size > best.size) best = { w, size, off };
+    }
+    if (!best || best.off + best.size > buf.length) return null;
+    const data = buf.subarray(best.off, best.off + best.size);
+    if (data.subarray(0, 4).equals(pngMagic)) return data; // embedded PNG
+    const headerSize = data.readUInt32LE(0);
+    const width = data.readInt32LE(4);
+    const h2 = data.readInt32LE(8);
+    const bpp = data.readUInt16LE(14);
+    if (bpp !== 32 || h2 % 2 !== 0) return null;
+    const height = h2 / 2;
+    if (width <= 0 || height <= 0 || width > 1024 || height > 1024) return null;
+    const rowBytes = width * 4;
+    const pixelStart = headerSize;
+    const rgba = Buffer.alloc(width * height * 4);
+    let anyAlpha = false;
+    for (let y = 0; y < height; y++) {
+      const srcRow = pixelStart + (height - 1 - y) * rowBytes;
+      if (srcRow + rowBytes > data.length) return null;
+      for (let x = 0; x < width; x++) {
+        const s = srcRow + x * 4;
+        const d = (y * width + x) * 4;
+        rgba[d] = data[s + 2];
+        rgba[d + 1] = data[s + 1];
+        rgba[d + 2] = data[s];
+        const a = data[s + 3];
+        rgba[d + 3] = a;
+        if (a !== 0) anyAlpha = true;
+      }
+    }
+    if (!anyAlpha) rgba.forEach((_, i) => { if (i % 4 === 3) rgba[i] = 255; });
+    return await sharp(rgba, { raw: { width, height, channels: 4 } })
+      .resize(128, 128, { fit: 'cover' })
+      .png()
+      .toBuffer();
+  } catch {
+    return null;
+  }
+}
+
 // ---- GET /api/v1/logo-proxy?domain=example.com
 // Fetches a site's favicon (favicone.com) and re-encodes to PNG, because
 // React Native's Image cannot decode ICO/SVG. 7-day immutable cache.
@@ -200,6 +255,16 @@ app.get('/api/v1/logo-proxy', async (req, res) => {
         }
       } catch {
         // fall through to blank
+      }
+    }
+    if (imageBuf && imageBuf.length > 6 && imageBuf[0] === 0 && imageBuf[1] === 0 && imageBuf[2] === 1 && imageBuf[3] === 0) {
+      const converted = await icoToPng(imageBuf);
+      if (converted) {
+        imageBuf = converted;
+        diag.push({ src: 'ico-decode', ok: true });
+      } else {
+        diag.push({ src: 'ico-decode', ok: false });
+        imageBuf = null;
       }
     }
     if (!imageBuf) {
