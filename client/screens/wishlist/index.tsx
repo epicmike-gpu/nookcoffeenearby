@@ -14,6 +14,7 @@ import { Screen } from '@/components/Screen';
 import MapPicker, { MapTarget } from '@/components/MapPicker';
 import { useUser } from '@/contexts/UserContext';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
+import { normalizePhotos } from '@/utils';
 import { API_BASE_URL } from '@/utils/api';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
@@ -54,7 +55,7 @@ function WishlistCard({
   onRemove: (id: string, name: string) => void;
 }) {
   const [mapPickerVisible, setMapPickerVisible] = useState(false);
-  const photos = item.shop_photos ? JSON.parse(item.shop_photos) : [];
+  const photos = normalizePhotos(item.shop_photos ? JSON.parse(item.shop_photos) : []);
   const imageUrl = photos[0] || '';
 
   const mapTarget: MapTarget = {
@@ -140,7 +141,7 @@ export default function WishlistScreen() {
   };
 
   const handleViewDetail = (item: WishlistItem) => {
-    const photos = item.shop_photos ? JSON.parse(item.shop_photos) : [];
+    const photos = normalizePhotos(item.shop_photos ? JSON.parse(item.shop_photos) : []);
     router.push('/detail', {
       poi_id: item.shop_poi_id,
       name: item.shop_name,

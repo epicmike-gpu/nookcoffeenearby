@@ -16,6 +16,19 @@ export function formatDistance(distance: string | number): string {
   return `${Math.round(d)}m`;
 }
 
+/**
+ * 归一化店铺图片数据为 URL 字符串数组
+ * 兼容两种历史格式：URL 字符串数组 ["https://..."] 和对象数组 [{title, url}]
+ * （数据库存量记录与路由参数中可能存在两种格式）
+ * @param raw JSON.parse 后的任意值
+ */
+export function normalizePhotos(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((p: unknown) => (typeof p === 'string' ? p : (p as { url?: string })?.url))
+    .filter((u: unknown): u is string => typeof u === 'string' && u.length > 0);
+}
+
 const API_BASE = (process.env.EXPO_PUBLIC_API_BASE ?? '').replace(/\/$/, '');
 
 /**

@@ -189,7 +189,9 @@ app.get('/api/v1/shops/nearby', async (req, res) => {
         longitude: lng,
         distance: poi.distance,
         type: poi.type,
-        photos: poi.photos || [],
+        // Normalize AMap photo objects ({title,url}) into plain URL strings,
+        // consistent with the /shops/search response format
+        photos: (poi.photos || []).map((ph: any) => ph?.url).filter(Boolean).slice(0, 3),
         cost: parseCost(poi.biz_ext?.cost),
       };
     });

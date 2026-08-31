@@ -13,6 +13,7 @@ import { Screen } from '@/components/Screen';
 import MapPicker, { MapTarget } from '@/components/MapPicker';
 import { useUser } from '@/contexts/UserContext';
 import { API_BASE_URL } from '@/utils/api';
+import { normalizePhotos } from '@/utils';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 
@@ -37,7 +38,7 @@ function formatDate(dateStr: string): string {
 
 function CheckinCard({ item }: { item: CheckinItem }) {
   const [mapPickerVisible, setMapPickerVisible] = useState(false);
-  const photos = item.shop_photos ? JSON.parse(item.shop_photos) : [];
+  const photos = normalizePhotos(item.shop_photos ? JSON.parse(item.shop_photos) : []);
   const imageUrl = photos[0] || '';
 
   const mapTarget: MapTarget = {

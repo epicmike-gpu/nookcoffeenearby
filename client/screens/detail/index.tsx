@@ -17,7 +17,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { useFocusEffect } from 'expo-router';
 import { API_BASE_URL } from '@/utils/api';
-import { formatDistance } from '@/utils';
+import { formatDistance, normalizePhotos } from '@/utils';
 import { Feather, Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -47,7 +47,7 @@ export default function DetailScreen() {
   const [mapPickerVisible, setMapPickerVisible] = useState(false);
   const [inWishlist, setInWishlist] = useState(false);
 
-  const photos: string[] = params.photos ? JSON.parse(params.photos) : [];
+  const photos: string[] = normalizePhotos(params.photos ? JSON.parse(params.photos) : []);
   const rating = parseFloat(params.rating || '0');
   const cost = params.cost ? parseInt(params.cost, 10) : null;
   // Global search results (Discover tab) only support Want to Go — no check-in
