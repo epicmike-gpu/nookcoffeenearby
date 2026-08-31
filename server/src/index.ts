@@ -495,7 +495,6 @@ app.get('/api/v1/shops/search', async (req, res) => {
       return 2 * R * Math.asin(Math.sqrt(a));
     };
 
-    const POI_KEYS = new Set(['amenity', 'shop', 'tourism', 'leisure']);
     const CAFE_VALUES = new Set(['cafe', 'coffee_shop', 'deli;coffee_shop', 'coffee_roaster', 'bakery', 'pastry']);
     // Match both OSM english values and AMap chinese category strings
     const isCafeType = (type: string) =>
@@ -592,7 +591,13 @@ app.get('/api/v1/shops/search', async (req, res) => {
     // Source 2: Photon/OpenStreetMap — worldwide coverage outside China
     const fetchPhoton = async (): Promise<ShopResult[]> => {
       const response = await axios.get('https://photon.komoot.io/api', {
-        params: { q: keyword, limit: 30, lang: 'en' },
+        params: {
+          q: keyword,
+          // pull the max Photon allows; type whitelist below filters out
+          // non-cafe matches (artwork, nature reserves, hotels, ...)
+          limit: 50,
+          lang: 'en',
+        },
         timeout: 10000,
         headers: {
           'User-Agent': 'CoffeeExplorer/1.0 (+https://www.nookcoffeenearby.top)',
@@ -607,7 +612,14 @@ app.get('/api/v1/shops/search', async (req, res) => {
         .filter((f) => {
           const props = f.properties;
           if (!props?.name) return false;
-          if (!POI_KEYS.has(String(props.osm_key))) return false;
+          // strict type whitelist: keep only coffee/brunch-like OSM classes,
+          // so artwork, nature reserves, hotels etc. never leak in
+          const osmKey = String(props.osm_key || '');
+          const osmValue = String(props.osm_value || '');
+          const okValues = new Set(['cafe', 'coffee_shop', 'restaurant', 'bakery', 'pastry']);
+          const typeOk =
+            (osmKey === 'amenity' || osmKey === 'shop') && okValues.has(osmValue);
+          if (!typeOk) return false;
           const id = `${props.osm_type}${props.osm_id}`;
           if (seen.has(id)) return false;
           seen.add(id);
