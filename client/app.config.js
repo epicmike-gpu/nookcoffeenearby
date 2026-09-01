@@ -93,6 +93,13 @@ module.exports = ({ config }) => ({
       },
     ],
   ],
+  extra: {
+    // EAS project id created by `eas init` (2025-xx). Dynamic configs must be
+    // updated manually per https://docs.expo.dev/workflow/configuration
+    eas: {
+      projectId: 'f93c8bb6-17de-4695-82d8-e5490b8d822f',
+    },
+  },
   experiments: {
     typedRoutes: true,
   },
